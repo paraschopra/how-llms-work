@@ -1,0 +1,16 @@
+{
+  "name": "how-llms-work-one-shot",
+  "version": "1.0.0",
+  "main": "export-animations.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "pdf-lib": "^1.17.1",
+    "puppeteer": "^24.38.0"
+  }
+}
