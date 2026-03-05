@@ -1,0 +1,2167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How LLMs Actually Work</title>
+  <link rel="stylesheet" href="css/presentation.css">
+</head>
+<body>
+
+<div class="presentation">
+
+<!-- ============================================================
+     SLIDE 1 — Title
+     ============================================================ -->
+<section class="slide title-slide layout-center active" id="slide-1">
+  <div class="slide-content">
+    <p class="label" style="letter-spacing:0.2em; margin-bottom:16px;">A Visual Journey</p>
+    <h1>How LLMs Actually Work</h1>
+    <p class="subtitle" style="margin-top:12px;">From Vectors to Intelligence</p>
+    <div class="anim-step" style="margin-top:40px;">
+      <p class="small-text" style="color:var(--text-dim);">45-60 minute talk &middot; No prerequisites required</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 2 — The Mystery
+     ============================================================ -->
+<section class="slide layout-center" id="slide-2">
+  <div class="slide-content">
+    <h2>The Mystery</h2>
+    <p>These models can write poetry, debug code, explain quantum physics, and pass the bar exam.</p>
+    <div class="anim-step">
+      <p style="color:var(--text-primary); font-weight:600; margin-top:20px;">But what is actually happening inside?</p>
+    </div>
+    <div class="anim-step">
+      <blockquote>
+        <p>"How is it that these models are doing these things that we don't know how to do? Imagine if some alien organism landed on Earth."</p>
+        <span class="attribution">— Chris Olah, Anthropic</span>
+      </blockquote>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 3 — 2D Vectors
+     ============================================================ -->
+<section class="slide layout-split" id="slide-3">
+  <div class="slide-text">
+    <p class="label">Step 1</p>
+    <h2>Everything is Numbers</h2>
+    <p>A <span class="text-cyan">vector</span> is a list of numbers — a point in space.</p>
+    <div class="anim-step">
+      <p>Each number describes one <span class="text-orange">feature</span>.</p>
+    </div>
+    <div class="anim-step">
+      <div class="highlight-box">
+        <p style="margin:0;">Example: Describe a fruit<br><code>[sweetness: 8, sourness: 2]</code></p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-visual">
+    <div class="diagram-container">
+      <svg viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg">
+        <!-- Grid lines -->
+        <defs>
+          <marker id="arrowhead-cyan" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#00d4ff"/>
+          </marker>
+          <marker id="arrowhead-orange" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#ff6b35"/>
+          </marker>
+          <marker id="arrowhead-green" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#00e676"/>
+          </marker>
+          <marker id="arrowhead-white" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#ffffff"/>
+          </marker>
+        </defs>
+        <!-- Axes -->
+        <line x1="60" y1="340" x2="460" y2="340" stroke="#334" stroke-width="2"/>
+        <line x1="60" y1="340" x2="60" y2="40" stroke="#334" stroke-width="2"/>
+        <!-- Axis labels -->
+        <text x="450" y="365" fill="#6b7394" font-size="14" font-family="Inter, sans-serif" text-anchor="end">Feature 1</text>
+        <text x="12" y="44" fill="#6b7394" font-size="14" font-family="Inter, sans-serif">Feature 2</text>
+        <!-- Grid -->
+        <g opacity="0.15">
+          <line x1="160" y1="340" x2="160" y2="40" stroke="#6b7394" stroke-width="1"/>
+          <line x1="260" y1="340" x2="260" y2="40" stroke="#6b7394" stroke-width="1"/>
+          <line x1="360" y1="340" x2="360" y2="40" stroke="#6b7394" stroke-width="1"/>
+          <line x1="60" y1="240" x2="460" y2="240" stroke="#6b7394" stroke-width="1"/>
+          <line x1="60" y1="140" x2="460" y2="140" stroke="#6b7394" stroke-width="1"/>
+        </g>
+        <!-- Tick labels -->
+        <text x="156" y="358" fill="#6b7394" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">2</text>
+        <text x="256" y="358" fill="#6b7394" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">4</text>
+        <text x="356" y="358" fill="#6b7394" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">6</text>
+        <text x="50" y="244" fill="#6b7394" font-size="12" text-anchor="end" font-family="Inter, sans-serif">2</text>
+        <text x="50" y="144" fill="#6b7394" font-size="12" text-anchor="end" font-family="Inter, sans-serif">4</text>
+        <!-- Point A: [3, 4] -->
+        <g class="anim-step">
+          <line x1="60" y1="340" x2="205" y2="140" stroke="#00d4ff" stroke-width="3" marker-end="url(#arrowhead-cyan)"/>
+          <circle cx="210" cy="140" r="6" fill="#00d4ff"/>
+          <text x="225" y="130" fill="#00d4ff" font-size="16" font-weight="600" font-family="Inter, sans-serif">[3, 4]</text>
+        </g>
+        <!-- Point B: [6, 2] -->
+        <g class="anim-step">
+          <line x1="60" y1="340" x2="350" y2="240" stroke="#ff6b35" stroke-width="3" marker-end="url(#arrowhead-orange)"/>
+          <circle cx="355" cy="240" r="6" fill="#ff6b35"/>
+          <text x="370" y="232" fill="#ff6b35" font-size="16" font-weight="600" font-family="Inter, sans-serif">[6, 2]</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 4 — 3D and Beyond
+     ============================================================ -->
+<section class="slide layout-split" id="slide-4">
+  <div class="slide-text">
+    <h2>More Dimensions = Richer Descriptions</h2>
+    <div class="anim-step">
+      <p>2 features: sweetness, sourness</p>
+    </div>
+    <div class="anim-step">
+      <p>3 features: + size</p>
+    </div>
+    <div class="anim-step">
+      <p>300 features: every shade of meaning</p>
+    </div>
+    <div class="anim-step">
+      <div class="key-insight">
+        <p>We can't visualize 300 dimensions, but the math works the same way.</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-visual">
+    <div class="diagram-container">
+      <svg viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg">
+        <!-- Isometric 3D axes -->
+        <g>
+          <!-- X axis -->
+          <line x1="200" y1="300" x2="420" y2="300" stroke="#ff6b35" stroke-width="2" marker-end="url(#arrowhead-orange)"/>
+          <text x="430" y="305" fill="#ff6b35" font-size="13" font-family="Inter, sans-serif">Sweetness</text>
+          <!-- Y axis (up) -->
+          <line x1="200" y1="300" x2="200" y2="80" stroke="#00e676" stroke-width="2" marker-end="url(#arrowhead-green)"/>
+          <text x="205" y="70" fill="#00e676" font-size="13" font-family="Inter, sans-serif">Size</text>
+          <!-- Z axis (diagonal) -->
+          <line x1="200" y1="300" x2="80" y2="370" stroke="#00d4ff" stroke-width="2" marker-end="url(#arrowhead-cyan)"/>
+          <text x="30" y="380" fill="#00d4ff" font-size="13" font-family="Inter, sans-serif">Sourness</text>
+        </g>
+        <!-- Data points -->
+        <g class="anim-step">
+          <!-- Apple -->
+          <circle cx="310" cy="200" r="8" fill="#00e676" opacity="0.8"/>
+          <text x="324" y="195" fill="#00e676" font-size="14" font-family="Inter, sans-serif">Apple</text>
+          <!-- Lemon -->
+          <circle cx="160" cy="260" r="6" fill="#ffd740" opacity="0.8"/>
+          <text x="130" y="252" fill="#ffd740" font-size="14" font-family="Inter, sans-serif">Lemon</text>
+          <!-- Watermelon -->
+          <circle cx="340" cy="140" r="12" fill="#ff4081" opacity="0.8"/>
+          <text x="356" y="136" fill="#ff4081" font-size="14" font-family="Inter, sans-serif">Watermelon</text>
+          <!-- Grape -->
+          <circle cx="290" cy="270" r="5" fill="#b388ff" opacity="0.8"/>
+          <text x="300" y="265" fill="#b388ff" font-size="14" font-family="Inter, sans-serif">Grape</text>
+        </g>
+        <!-- Dimension annotation -->
+        <g class="anim-step">
+          <rect x="120" y="20" rx="8" width="260" height="40" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)" stroke-width="1"/>
+          <text x="250" y="46" fill="#00d4ff" font-size="15" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Real embeddings: 300 - 4,096 dims</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 5 — Word2Vec
+     ============================================================ -->
+<section class="slide layout-split" id="slide-5">
+  <div class="slide-text">
+    <p class="label">2013 — A Breakthrough</p>
+    <h2>Words as Vectors</h2>
+    <div class="anim-step">
+      <p>Tomas Mikolov (Google) showed that words could be represented as vectors — and that these vectors <span class="text-cyan">captured meaning</span>.</p>
+    </div>
+    <div class="anim-step">
+      <p>Similar words <span class="text-green">cluster together</span> in vector space.</p>
+    </div>
+    <div class="anim-step">
+      <p class="citation">Mikolov et al., "Efficient Estimation of Word Representations in Vector Space," 2013</p>
+    </div>
+  </div>
+  <div class="slide-visual">
+    <div class="diagram-container">
+      <svg viewBox="0 0 500 420" xmlns="http://www.w3.org/2000/svg">
+        <!-- Clusters of words -->
+        <!-- Animals cluster -->
+        <g class="anim-step">
+          <ellipse cx="140" cy="120" rx="80" ry="60" fill="rgba(0,230,118,0.08)" stroke="rgba(0,230,118,0.2)" stroke-width="1"/>
+          <text x="140" y="70" fill="#00e676" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">ANIMALS</text>
+          <circle cx="110" cy="110" r="4" fill="#00e676"/>
+          <text x="100" y="100" fill="#b0b8d0" font-size="13" text-anchor="end" font-family="Inter, sans-serif">cat</text>
+          <circle cx="150" cy="100" r="4" fill="#00e676"/>
+          <text x="164" y="96" fill="#b0b8d0" font-size="13" font-family="Inter, sans-serif">dog</text>
+          <circle cx="125" cy="140" r="4" fill="#00e676"/>
+          <text x="125" y="158" fill="#b0b8d0" font-size="13" text-anchor="middle" font-family="Inter, sans-serif">lion</text>
+          <circle cx="165" cy="130" r="4" fill="#00e676"/>
+          <text x="180" y="128" fill="#b0b8d0" font-size="13" font-family="Inter, sans-serif">tiger</text>
+        </g>
+        <!-- Countries cluster -->
+        <g class="anim-step">
+          <ellipse cx="370" cy="130" rx="90" ry="55" fill="rgba(0,212,255,0.08)" stroke="rgba(0,212,255,0.2)" stroke-width="1"/>
+          <text x="370" y="82" fill="#00d4ff" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">COUNTRIES</text>
+          <circle cx="340" cy="120" r="4" fill="#00d4ff"/>
+          <text x="340" y="110" fill="#b0b8d0" font-size="13" text-anchor="middle" font-family="Inter, sans-serif">France</text>
+          <circle cx="390" cy="110" r="4" fill="#00d4ff"/>
+          <text x="390" y="100" fill="#b0b8d0" font-size="13" text-anchor="middle" font-family="Inter, sans-serif">Japan</text>
+          <circle cx="350" cy="150" r="4" fill="#00d4ff"/>
+          <text x="350" y="166" fill="#b0b8d0" font-size="13" text-anchor="middle" font-family="Inter, sans-serif">India</text>
+          <circle cx="400" cy="140" r="4" fill="#00d4ff"/>
+          <text x="415" y="138" fill="#b0b8d0" font-size="13" font-family="Inter, sans-serif">Brazil</text>
+        </g>
+        <!-- Emotions cluster -->
+        <g class="anim-step">
+          <ellipse cx="250" cy="320" rx="100" ry="55" fill="rgba(255,64,129,0.08)" stroke="rgba(255,64,129,0.2)" stroke-width="1"/>
+          <text x="250" y="274" fill="#ff4081" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">EMOTIONS</text>
+          <circle cx="210" cy="310" r="4" fill="#ff4081"/>
+          <text x="195" y="302" fill="#b0b8d0" font-size="13" text-anchor="end" font-family="Inter, sans-serif">happy</text>
+          <circle cx="270" cy="305" r="4" fill="#ff4081"/>
+          <text x="285" y="300" fill="#b0b8d0" font-size="13" font-family="Inter, sans-serif">joyful</text>
+          <circle cx="230" cy="340" r="4" fill="#ff4081"/>
+          <text x="230" y="358" fill="#b0b8d0" font-size="13" text-anchor="middle" font-family="Inter, sans-serif">sad</text>
+          <circle cx="280" cy="335" r="4" fill="#ff4081"/>
+          <text x="296" y="332" fill="#b0b8d0" font-size="13" font-family="Inter, sans-serif">angry</text>
+        </g>
+        <!-- Key insight -->
+        <g class="anim-step">
+          <text x="250" y="410" fill="#ffd740" font-size="14" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">No one told the model what these words mean — it figured it out from context</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 6 — Contrastive Learning
+     ============================================================ -->
+<section class="slide layout-split" id="slide-6">
+  <div class="slide-text">
+    <h2>How Word2Vec Learns</h2>
+    <div class="anim-step">
+      <p>Words that <span class="text-green">appear together</span> should have similar vectors.</p>
+    </div>
+    <div class="anim-step">
+      <p>Words that <span class="text-pink">don't co-occur</span> should be pushed apart.</p>
+    </div>
+    <div class="anim-step">
+      <div class="key-insight">
+        <p>After billions of examples, the space self-organizes — meaning emerges.</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-visual">
+    <div class="diagram-container">
+      <svg viewBox="0 0 520 400" xmlns="http://www.w3.org/2000/svg">
+        <!-- Sentence with sliding window -->
+        <g>
+          <text x="260" y="35" fill="#6b7394" font-size="13" text-anchor="middle" font-family="Inter, sans-serif">TRAINING SENTENCE</text>
+          <rect x="30" y="45" rx="6" width="60" height="32" fill="var(--bg-card)" stroke="#334" stroke-width="1"/>
+          <text x="60" y="67" fill="#b0b8d0" font-size="14" text-anchor="middle" font-family="Inter, sans-serif">The</text>
+          <rect x="100" y="45" rx="6" width="60" height="32" fill="var(--bg-card)" stroke="#334" stroke-width="1"/>
+          <text x="130" y="67" fill="#b0b8d0" font-size="14" text-anchor="middle" font-family="Inter, sans-serif">cat</text>
+          <rect x="170" y="45" rx="6" width="60" height="32" fill="var(--bg-card)" stroke="#334" stroke-width="1"/>
+          <text x="200" y="67" fill="#b0b8d0" font-size="14" text-anchor="middle" font-family="Inter, sans-serif">sat</text>
+          <rect x="240" y="45" rx="6" width="60" height="32" fill="var(--bg-card)" stroke="#334" stroke-width="1"/>
+          <text x="270" y="67" fill="#b0b8d0" font-size="14" text-anchor="middle" font-family="Inter, sans-serif">on</text>
+          <rect x="310" y="45" rx="6" width="60" height="32" fill="var(--bg-card)" stroke="#334" stroke-width="1"/>
+          <text x="340" y="67" fill="#b0b8d0" font-size="14" text-anchor="middle" font-family="Inter, sans-serif">the</text>
+          <rect x="380" y="45" rx="6" width="60" height="32" fill="var(--bg-card)" stroke="#334" stroke-width="1"/>
+          <text x="410" y="67" fill="#b0b8d0" font-size="14" text-anchor="middle" font-family="Inter, sans-serif">mat</text>
+          <rect x="450" y="45" rx="6" width="60" height="32" fill="var(--bg-card)" stroke="#334" stroke-width="1"/>
+          <text x="480" y="67" fill="#b0b8d0" font-size="14" text-anchor="middle" font-family="Inter, sans-serif">.</text>
+        </g>
+        <!-- Highlight window around "cat" -->
+        <g class="anim-step">
+          <rect x="95" y="40" rx="8" width="145" height="42" fill="none" stroke="#00d4ff" stroke-width="2" stroke-dasharray="4,3"/>
+          <text x="168" y="100" fill="#00d4ff" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">context window</text>
+        </g>
+        <!-- Push together: cat and sat -->
+        <g class="anim-step">
+          <circle cx="170" cy="210" r="24" fill="rgba(0,230,118,0.15)" stroke="#00e676" stroke-width="2"/>
+          <text x="170" y="215" fill="#00e676" font-size="15" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">cat</text>
+          <circle cx="330" cy="210" r="24" fill="rgba(0,230,118,0.15)" stroke="#00e676" stroke-width="2"/>
+          <text x="330" y="215" fill="#00e676" font-size="15" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">sat</text>
+          <!-- Green arrows pulling together -->
+          <line x1="198" y1="210" x2="298" y2="210" stroke="#00e676" stroke-width="2" marker-end="url(#arrowhead-green)"/>
+          <line x1="302" y1="210" x2="202" y2="210" stroke="#00e676" stroke-width="2"/>
+          <text x="250" y="195" fill="#00e676" font-size="13" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">PULL TOGETHER</text>
+        </g>
+        <!-- Push apart: cat and economics -->
+        <g class="anim-step">
+          <circle cx="140" cy="330" r="24" fill="rgba(255,64,129,0.15)" stroke="#ff4081" stroke-width="2"/>
+          <text x="140" y="335" fill="#ff4081" font-size="15" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">cat</text>
+          <circle cx="390" cy="330" r="24" fill="rgba(255,64,129,0.15)" stroke="#ff4081" stroke-width="2"/>
+          <text x="390" y="335" fill="#ff4081" font-size="13" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">stocks</text>
+          <!-- Red arrows pushing apart -->
+          <line x1="165" y1="330" x2="114" y2="330" stroke="#ff4081" stroke-width="2" marker-end="url(#arrowhead-cyan)"/>
+          <line x1="365" y1="330" x2="416" y2="330" stroke="#ff4081" stroke-width="2"/>
+          <text x="265" y="315" fill="#ff4081" font-size="13" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">PUSH APART</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 7 — Vector Arithmetic (King-Queen)
+     ============================================================ -->
+<section class="slide layout-split" id="slide-7">
+  <div class="slide-text">
+    <h2>Vector Arithmetic</h2>
+    <div class="anim-step">
+      <p class="formula">king − man + woman ≈ queen</p>
+    </div>
+    <div class="anim-step">
+      <p>Relationships become <span class="text-cyan">geometric operations</span> in vector space.</p>
+    </div>
+    <div class="anim-step">
+      <p class="formula" style="font-size:clamp(14px,1.6vw,24px);">Paris − France + Japan ≈ Tokyo</p>
+    </div>
+    <div class="anim-step">
+      <blockquote>
+        <p>"Gender differences tend to be represented with a constant difference vector."</p>
+        <span class="attribution">— Chris Olah</span>
+      </blockquote>
+    </div>
+  </div>
+  <div class="slide-visual">
+    <div class="diagram-container">
+      <svg viewBox="0 0 460 380" xmlns="http://www.w3.org/2000/svg">
+        <!-- Parallelogram -->
+        <g class="anim-step">
+          <!-- King -->
+          <circle cx="100" cy="100" r="8" fill="#00d4ff"/>
+          <text x="70" y="88" fill="#00d4ff" font-size="16" font-weight="600" font-family="Inter, sans-serif">king</text>
+          <!-- Man -->
+          <circle cx="100" cy="280" r="8" fill="#ff6b35"/>
+          <text x="72" y="300" fill="#ff6b35" font-size="16" font-weight="600" font-family="Inter, sans-serif">man</text>
+          <!-- Line king → man (gender direction) -->
+          <line x1="100" y1="112" x2="100" y2="268" stroke="#ffd740" stroke-width="2" stroke-dasharray="6,4"/>
+          <text x="60" y="195" fill="#ffd740" font-size="12" text-anchor="end" font-family="Inter, sans-serif" transform="rotate(-90,60,195)">gender</text>
+        </g>
+        <g class="anim-step">
+          <!-- Woman -->
+          <circle cx="340" cy="280" r="8" fill="#ff6b35"/>
+          <text x="355" y="300" fill="#ff6b35" font-size="16" font-weight="600" font-family="Inter, sans-serif">woman</text>
+          <!-- Line man → woman -->
+          <line x1="112" y1="280" x2="328" y2="280" stroke="#b388ff" stroke-width="2" stroke-dasharray="6,4"/>
+        </g>
+        <g class="anim-step">
+          <!-- Queen (result) -->
+          <circle cx="340" cy="100" r="10" fill="#00e676"/>
+          <text x="358" y="92" fill="#00e676" font-size="18" font-weight="700" font-family="Inter, sans-serif">queen!</text>
+          <!-- Line woman → queen (gender direction) -->
+          <line x1="340" y1="268" x2="340" y2="112" stroke="#ffd740" stroke-width="2" stroke-dasharray="6,4"/>
+          <!-- Line king → queen -->
+          <line x1="112" y1="100" x2="328" y2="100" stroke="#b388ff" stroke-width="2" stroke-dasharray="6,4"/>
+          <!-- The actual vector operation -->
+          <text x="230" y="350" fill="#6b7394" font-size="13" text-anchor="middle" font-family="Inter, sans-serif">The "royalty" direction is preserved</text>
+          <text x="230" y="370" fill="#6b7394" font-size="13" text-anchor="middle" font-family="Inter, sans-serif">The "gender" direction changes</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 8 — Cosine Similarity
+     ============================================================ -->
+<section class="slide layout-split" id="slide-8">
+  <div class="slide-text">
+    <h2>Cosine Similarity</h2>
+    <p>Measure meaning by the <span class="text-cyan">angle</span> between vectors.</p>
+    <div class="anim-step">
+      <div class="highlight-box green">
+        <p style="margin:0;"><span class="text-green">Small angle → Similar</span><br>"happy" & "joyful"</p>
+      </div>
+    </div>
+    <div class="anim-step">
+      <div class="highlight-box">
+        <p style="margin:0;"><span class="text-cyan">90° → Unrelated</span><br>"happy" & "table"</p>
+      </div>
+    </div>
+    <div class="anim-step">
+      <div class="highlight-box pink">
+        <p style="margin:0;"><span class="text-pink">Opposite → Antonyms</span><br>"happy" & "miserable"</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-visual">
+    <div class="diagram-container">
+      <svg viewBox="0 0 460 380" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="80" cy="300" r="3" fill="#6b7394"/>
+        <!-- Similar: small angle -->
+        <g class="anim-step">
+          <line x1="80" y1="300" x2="380" y2="120" stroke="#00e676" stroke-width="3" marker-end="url(#arrowhead-green)"/>
+          <text x="390" y="115" fill="#00e676" font-size="15" font-weight="600" font-family="Inter, sans-serif">happy</text>
+          <line x1="80" y1="300" x2="400" y2="160" stroke="#00e676" stroke-width="3" opacity="0.6"/>
+          <text x="410" y="155" fill="#00e676" font-size="15" opacity="0.7" font-family="Inter, sans-serif">joyful</text>
+          <!-- Angle arc -->
+          <path d="M 180,240 A 80,80 0 0,1 190,252" fill="none" stroke="#00e676" stroke-width="2"/>
+          <text x="210" y="225" fill="#00e676" font-size="14" font-family="Inter, sans-serif">15°</text>
+          <text x="210" y="245" fill="#00e676" font-size="12" font-family="Inter, sans-serif">cos = 0.97</text>
+        </g>
+        <!-- Unrelated: perpendicular -->
+        <g class="anim-step">
+          <line x1="80" y1="300" x2="260" y2="350" stroke="#00d4ff" stroke-width="3" opacity="0.6"/>
+          <text x="270" y="355" fill="#00d4ff" font-size="15" opacity="0.7" font-family="Inter, sans-serif">table</text>
+          <path d="M 140,310 A 40,40 0 0,0 120,290" fill="none" stroke="#00d4ff" stroke-width="2"/>
+          <text x="100" y="340" fill="#00d4ff" font-size="14" font-family="Inter, sans-serif">90° → cos = 0</text>
+        </g>
+        <!-- Opposite -->
+        <g class="anim-step">
+          <line x1="80" y1="300" x2="30" y2="340" stroke="#ff4081" stroke-width="3" opacity="0.6"/>
+          <text x="10" y="365" fill="#ff4081" font-size="14" opacity="0.7" font-family="Inter, sans-serif">miserable</text>
+          <text x="60" y="380" fill="#ff4081" font-size="12" font-family="Inter, sans-serif">cos = −0.8</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 9 — Vectors Carry Rich Info
+     ============================================================ -->
+<section class="slide layout-center" id="slide-9">
+  <div class="slide-content">
+    <h2>Each Dimension Captures a Shade of Meaning</h2>
+    <div class="diagram-container large">
+      <svg viewBox="0 0 800 300" xmlns="http://www.w3.org/2000/svg">
+        <!-- Scientist vector -->
+        <g class="anim-step">
+          <text x="100" y="30" fill="#00d4ff" font-size="18" font-weight="600" text-anchor="middle" font-family="Inter, sans-serif">"scientist"</text>
+          <!-- Colored bars representing dimensions -->
+          <g transform="translate(60,40)">
+            <rect x="0" y="0" width="80" height="18" rx="3" fill="#00d4ff" opacity="0.9"/>
+            <rect x="0" y="22" width="20" height="18" rx="3" fill="#00d4ff" opacity="0.3"/>
+            <rect x="0" y="44" width="70" height="18" rx="3" fill="#00d4ff" opacity="0.8"/>
+            <rect x="0" y="66" width="10" height="18" rx="3" fill="#00d4ff" opacity="0.15"/>
+            <rect x="0" y="88" width="45" height="18" rx="3" fill="#00d4ff" opacity="0.5"/>
+            <rect x="0" y="110" width="75" height="18" rx="3" fill="#00d4ff" opacity="0.85"/>
+            <rect x="0" y="132" width="30" height="18" rx="3" fill="#00d4ff" opacity="0.35"/>
+            <rect x="0" y="154" width="60" height="18" rx="3" fill="#00d4ff" opacity="0.7"/>
+          </g>
+          <!-- Dimension labels -->
+          <text x="160" y="55" fill="#6b7394" font-size="12" font-family="Inter, sans-serif">← education</text>
+          <text x="160" y="99" fill="#6b7394" font-size="12" font-family="Inter, sans-serif">← profession</text>
+          <text x="160" y="143" fill="#6b7394" font-size="12" font-family="Inter, sans-serif">← knowledge</text>
+          <text x="160" y="165" fill="#6b7394" font-size="12" font-family="Inter, sans-serif">← ...</text>
+          <text x="100" y="220" fill="#6b7394" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">300 dimensions total</text>
+        </g>
+        <!-- Artist vector for comparison -->
+        <g class="anim-step">
+          <text x="440" y="30" fill="#ff6b35" font-size="18" font-weight="600" text-anchor="middle" font-family="Inter, sans-serif">"artist"</text>
+          <g transform="translate(400,40)">
+            <rect x="0" y="0" width="40" height="18" rx="3" fill="#ff6b35" opacity="0.5"/>
+            <rect x="0" y="22" width="70" height="18" rx="3" fill="#ff6b35" opacity="0.8"/>
+            <rect x="0" y="44" width="30" height="18" rx="3" fill="#ff6b35" opacity="0.35"/>
+            <rect x="0" y="66" width="80" height="18" rx="3" fill="#ff6b35" opacity="0.9"/>
+            <rect x="0" y="88" width="25" height="18" rx="3" fill="#ff6b35" opacity="0.3"/>
+            <rect x="0" y="110" width="15" height="18" rx="3" fill="#ff6b35" opacity="0.2"/>
+            <rect x="0" y="132" width="75" height="18" rx="3" fill="#ff6b35" opacity="0.85"/>
+            <rect x="0" y="154" width="50" height="18" rx="3" fill="#ff6b35" opacity="0.6"/>
+          </g>
+          <text x="500" y="55" fill="#6b7394" font-size="12" font-family="Inter, sans-serif">← education</text>
+          <text x="500" y="77" fill="#6b7394" font-size="12" font-family="Inter, sans-serif">← creativity</text>
+          <text x="500" y="143" fill="#6b7394" font-size="12" font-family="Inter, sans-serif">← expression</text>
+          <text x="440" y="220" fill="#6b7394" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">same space, different pattern</text>
+        </g>
+        <!-- Hinton quote -->
+        <g class="anim-step">
+          <rect x="180" y="240" rx="8" width="440" height="50" fill="rgba(255,215,64,0.06)" stroke="rgba(255,215,64,0.2)" stroke-width="1"/>
+          <text x="400" y="262" fill="#ffd740" font-size="13" text-anchor="middle" font-style="italic" font-family="Inter, sans-serif">"We now think of internal representation as great big vectors."</text>
+          <text x="400" y="280" fill="#ffd740" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">— Geoffrey Hinton, Nobel Prize 2024</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 10 — Tokenization
+     ============================================================ -->
+<section class="slide layout-center" id="slide-10">
+  <div class="slide-content">
+    <h2>From Words to Tokens</h2>
+    <p>LLMs don't process words — they process <span class="text-cyan">tokens</span> (word pieces).</p>
+    <div class="diagram-container large">
+      <svg viewBox="0 0 800 220" xmlns="http://www.w3.org/2000/svg">
+        <!-- Original sentence -->
+        <g class="anim-step">
+          <text x="400" y="30" fill="#6b7394" font-size="13" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">INPUT TEXT</text>
+          <rect x="120" y="38" rx="8" width="560" height="40" fill="var(--bg-card)" stroke="#334" stroke-width="1"/>
+          <text x="400" y="65" fill="#ffffff" font-size="18" text-anchor="middle" font-family="JetBrains Mono, monospace">Understanding language models</text>
+        </g>
+        <!-- Tokenized -->
+        <g class="anim-step">
+          <text x="400" y="108" fill="#6b7394" font-size="13" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">TOKENIZED</text>
+          <rect x="80" y="115" rx="6" width="120" height="34" fill="rgba(0,212,255,0.12)" stroke="#00d4ff" stroke-width="1"/>
+          <text x="140" y="137" fill="#00d4ff" font-size="14" text-anchor="middle" font-family="JetBrains Mono, monospace">Under</text>
+          <rect x="210" y="115" rx="6" width="130" height="34" fill="rgba(255,107,53,0.12)" stroke="#ff6b35" stroke-width="1"/>
+          <text x="275" y="137" fill="#ff6b35" font-size="14" text-anchor="middle" font-family="JetBrains Mono, monospace">standing</text>
+          <rect x="350" y="115" rx="6" width="130" height="34" fill="rgba(0,230,118,0.12)" stroke="#00e676" stroke-width="1"/>
+          <text x="415" y="137" fill="#00e676" font-size="14" text-anchor="middle" font-family="JetBrains Mono, monospace">language</text>
+          <rect x="490" y="115" rx="6" width="120" height="34" fill="rgba(179,136,255,0.12)" stroke="#b388ff" stroke-width="1"/>
+          <text x="550" y="137" fill="#b388ff" font-size="14" text-anchor="middle" font-family="JetBrains Mono, monospace">models</text>
+        </g>
+        <!-- Each token → vector -->
+        <g class="anim-step">
+          <text x="400" y="178" fill="#6b7394" font-size="13" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">EACH TOKEN → EMBEDDING VECTOR</text>
+          <rect x="95" y="185" rx="4" width="90" height="24" fill="rgba(0,212,255,0.2)"/>
+          <text x="140" y="202" fill="#00d4ff" font-size="11" text-anchor="middle" font-family="JetBrains Mono, monospace">[0.2, -0.1, ...]</text>
+          <rect x="220" y="185" rx="4" width="110" height="24" fill="rgba(255,107,53,0.2)"/>
+          <text x="275" y="202" fill="#ff6b35" font-size="11" text-anchor="middle" font-family="JetBrains Mono, monospace">[0.8, 0.3, ...]</text>
+          <rect x="360" y="185" rx="4" width="110" height="24" fill="rgba(0,230,118,0.2)"/>
+          <text x="415" y="202" fill="#00e676" font-size="11" text-anchor="middle" font-family="JetBrains Mono, monospace">[-0.1, 0.7, ...]</text>
+          <rect x="500" y="185" rx="4" width="100" height="24" fill="rgba(179,136,255,0.2)"/>
+          <text x="550" y="202" fill="#b388ff" font-size="11" text-anchor="middle" font-family="JetBrains Mono, monospace">[0.5, -0.4, ...]</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 11 — The Embedding Space
+     ============================================================ -->
+<section class="slide layout-center" id="slide-11">
+  <div class="slide-content">
+    <h2>The Embedding Space</h2>
+    <p>Every token maps to a point in a vast high-dimensional space.</p>
+    <div class="anim-step">
+      <div class="diagram-container large">
+        <svg viewBox="0 0 800 320" xmlns="http://www.w3.org/2000/svg">
+          <!-- Galaxy of dots -->
+          <!-- Code cluster -->
+          <g>
+            <text x="120" y="50" fill="#00d4ff" font-size="11" font-weight="600" font-family="Inter, sans-serif">CODE</text>
+            <circle cx="90" cy="80" r="3" fill="#00d4ff" opacity="0.4"/>
+            <circle cx="110" cy="70" r="2" fill="#00d4ff" opacity="0.6"/>
+            <circle cx="130" cy="90" r="3" fill="#00d4ff" opacity="0.5"/>
+            <circle cx="105" cy="95" r="2" fill="#00d4ff" opacity="0.3"/>
+            <circle cx="145" cy="75" r="2" fill="#00d4ff" opacity="0.7"/>
+            <circle cx="125" cy="60" r="3" fill="#00d4ff" opacity="0.4"/>
+            <circle cx="95" cy="65" r="2" fill="#00d4ff" opacity="0.5"/>
+          </g>
+          <!-- Emotion cluster -->
+          <g>
+            <text x="620" y="60" fill="#ff4081" font-size="11" font-weight="600" font-family="Inter, sans-serif">EMOTIONS</text>
+            <circle cx="630" cy="80" r="3" fill="#ff4081" opacity="0.5"/>
+            <circle cx="650" cy="90" r="2" fill="#ff4081" opacity="0.4"/>
+            <circle cx="670" cy="75" r="3" fill="#ff4081" opacity="0.6"/>
+            <circle cx="640" cy="100" r="2" fill="#ff4081" opacity="0.3"/>
+            <circle cx="660" cy="70" r="2" fill="#ff4081" opacity="0.5"/>
+          </g>
+          <!-- Science cluster -->
+          <g>
+            <text x="350" y="150" fill="#00e676" font-size="11" font-weight="600" font-family="Inter, sans-serif">SCIENCE</text>
+            <circle cx="360" cy="170" r="3" fill="#00e676" opacity="0.5"/>
+            <circle cx="380" cy="180" r="2" fill="#00e676" opacity="0.4"/>
+            <circle cx="400" cy="165" r="3" fill="#00e676" opacity="0.6"/>
+            <circle cx="370" cy="190" r="2" fill="#00e676" opacity="0.3"/>
+            <circle cx="395" cy="185" r="2" fill="#00e676" opacity="0.5"/>
+            <circle cx="345" cy="178" r="3" fill="#00e676" opacity="0.4"/>
+          </g>
+          <!-- Legal cluster -->
+          <g>
+            <text x="560" y="230" fill="#b388ff" font-size="11" font-weight="600" font-family="Inter, sans-serif">LEGAL</text>
+            <circle cx="570" cy="250" r="3" fill="#b388ff" opacity="0.5"/>
+            <circle cx="590" cy="240" r="2" fill="#b388ff" opacity="0.4"/>
+            <circle cx="610" cy="255" r="3" fill="#b388ff" opacity="0.6"/>
+            <circle cx="580" cy="265" r="2" fill="#b388ff" opacity="0.3"/>
+          </g>
+          <!-- Math cluster -->
+          <g>
+            <text x="150" y="230" fill="#ffd740" font-size="11" font-weight="600" font-family="Inter, sans-serif">MATH</text>
+            <circle cx="160" cy="250" r="3" fill="#ffd740" opacity="0.5"/>
+            <circle cx="180" cy="245" r="2" fill="#ffd740" opacity="0.4"/>
+            <circle cx="200" cy="258" r="3" fill="#ffd740" opacity="0.6"/>
+            <circle cx="170" cy="265" r="2" fill="#ffd740" opacity="0.3"/>
+            <circle cx="190" cy="240" r="2" fill="#ffd740" opacity="0.5"/>
+          </g>
+          <!-- Scattered background dots -->
+          <circle cx="280" cy="120" r="1.5" fill="#6b7394" opacity="0.2"/>
+          <circle cx="450" cy="100" r="1.5" fill="#6b7394" opacity="0.15"/>
+          <circle cx="520" cy="160" r="1.5" fill="#6b7394" opacity="0.2"/>
+          <circle cx="250" cy="200" r="1.5" fill="#6b7394" opacity="0.15"/>
+          <circle cx="470" cy="230" r="1.5" fill="#6b7394" opacity="0.2"/>
+          <circle cx="310" cy="270" r="1.5" fill="#6b7394" opacity="0.15"/>
+          <circle cx="700" cy="180" r="1.5" fill="#6b7394" opacity="0.2"/>
+        </svg>
+      </div>
+    </div>
+    <div class="anim-step">
+      <blockquote>
+        <p>"The parameters are like a lossy zip file of internet knowledge."</p>
+        <span class="attribution">— Andrej Karpathy</span>
+      </blockquote>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 12 — Transition: Opening the Black Box
+     ============================================================ -->
+<section class="slide section-transition layout-center" id="slide-12">
+  <div class="slide-content">
+    <p class="label text-cyan">Act II</p>
+    <h2>The Machinery</h2>
+    <div class="anim-step">
+      <p>We've seen how <span class="text-cyan">meaning becomes geometry</span>.</p>
+      <p style="margin-top:16px;">Now let's open the black box.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 13 — Transformer Bird's Eye
+     ============================================================ -->
+<section class="slide layout-split" id="slide-13">
+  <div class="slide-text">
+    <p class="label">2017 — The Architecture</p>
+    <h2>The Transformer</h2>
+    <div class="anim-step">
+      <p>Every modern LLM uses the same pattern:</p>
+    </div>
+    <div class="anim-step">
+      <div class="highlight-box">
+        <p style="margin:0;">Attention → MLP → Attention → MLP → ...</p>
+        <p class="small-text" style="margin:4px 0 0;">repeated 32 - 120+ times</p>
+      </div>
+    </div>
+    <div class="anim-step">
+      <p class="citation">Vaswani et al., "Attention Is All You Need," 2017</p>
+    </div>
+  </div>
+  <div class="slide-visual">
+    <div class="diagram-container">
+      <svg viewBox="0 0 350 420" xmlns="http://www.w3.org/2000/svg">
+        <!-- Input -->
+        <g class="anim-step">
+          <rect x="75" y="370" rx="6" width="200" height="36" fill="rgba(0,212,255,0.15)" stroke="#00d4ff" stroke-width="1.5"/>
+          <text x="175" y="393" fill="#00d4ff" font-size="14" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Token Embeddings</text>
+          <line x1="175" y1="370" x2="175" y2="345" stroke="#6b7394" stroke-width="1.5" marker-end="url(#arrowhead-white)"/>
+        </g>
+        <!-- Block 1 -->
+        <g class="anim-step">
+          <rect x="50" y="260" rx="8" width="250" height="80" fill="var(--bg-card)" stroke="#334" stroke-width="1.5"/>
+          <rect x="70" y="270" rx="4" width="100" height="28" fill="rgba(255,107,53,0.15)" stroke="#ff6b35" stroke-width="1"/>
+          <text x="120" y="289" fill="#ff6b35" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Attention</text>
+          <rect x="180" y="270" rx="4" width="100" height="28" fill="rgba(179,136,255,0.15)" stroke="#b388ff" stroke-width="1"/>
+          <text x="230" y="289" fill="#b388ff" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">MLP</text>
+          <text x="175" y="325" fill="#6b7394" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">Transformer Block 1</text>
+          <line x1="175" y1="260" x2="175" y2="240" stroke="#6b7394" stroke-width="1.5" marker-end="url(#arrowhead-white)"/>
+        </g>
+        <!-- Block 2 -->
+        <g class="anim-step">
+          <rect x="50" y="155" rx="8" width="250" height="80" fill="var(--bg-card)" stroke="#334" stroke-width="1.5"/>
+          <rect x="70" y="165" rx="4" width="100" height="28" fill="rgba(255,107,53,0.15)" stroke="#ff6b35" stroke-width="1"/>
+          <text x="120" y="184" fill="#ff6b35" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Attention</text>
+          <rect x="180" y="165" rx="4" width="100" height="28" fill="rgba(179,136,255,0.15)" stroke="#b388ff" stroke-width="1"/>
+          <text x="230" y="184" fill="#b388ff" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">MLP</text>
+          <text x="175" y="220" fill="#6b7394" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">Transformer Block 2</text>
+          <!-- Dots for more blocks -->
+          <text x="175" y="145" fill="#6b7394" font-size="20" text-anchor="middle">⋮</text>
+          <text x="230" y="145" fill="#6b7394" font-size="11" font-family="Inter, sans-serif">×N layers</text>
+          <line x1="175" y1="125" x2="175" y2="105" stroke="#6b7394" stroke-width="1.5" marker-end="url(#arrowhead-white)"/>
+        </g>
+        <!-- Output -->
+        <g class="anim-step">
+          <rect x="75" y="50" rx="6" width="200" height="50" fill="rgba(0,230,118,0.12)" stroke="#00e676" stroke-width="1.5"/>
+          <text x="175" y="72" fill="#00e676" font-size="13" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Next Token</text>
+          <text x="175" y="90" fill="#00e676" font-size="13" text-anchor="middle" font-family="Inter, sans-serif">Probabilities</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 14 — Residual Stream
+     ============================================================ -->
+<section class="slide layout-split" id="slide-14">
+  <div class="slide-text">
+    <h2>The Residual Stream</h2>
+    <div class="anim-step">
+      <p>Vectors flow through the model like a <span class="text-cyan">river</span>.</p>
+    </div>
+    <div class="anim-step">
+      <p>Each layer <span class="text-orange">reads</span> from the stream, processes, and <span class="text-green">adds back</span>.</p>
+    </div>
+    <div class="anim-step">
+      <div class="formula">x = x + Attention(x)<br>x = x + MLP(x)</div>
+    </div>
+    <div class="anim-step">
+      <div class="key-insight">
+        <p>Nothing is replaced entirely — information accumulates.</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-visual">
+    <div class="diagram-container">
+      <svg viewBox="0 0 400 360" xmlns="http://www.w3.org/2000/svg">
+        <!-- Main stream (horizontal) -->
+        <line x1="40" y1="180" x2="380" y2="180" stroke="#00d4ff" stroke-width="4" opacity="0.3"/>
+        <!-- Input token -->
+        <g class="anim-step">
+          <rect x="20" y="165" rx="6" width="60" height="30" fill="rgba(0,212,255,0.2)" stroke="#00d4ff" stroke-width="1"/>
+          <text x="50" y="185" fill="#00d4ff" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">token</text>
+        </g>
+        <!-- Attention reads and writes -->
+        <g class="anim-step">
+          <!-- Read arrow up -->
+          <line x1="140" y1="175" x2="140" y2="110" stroke="#ff6b35" stroke-width="2" stroke-dasharray="4,3"/>
+          <!-- Attention box -->
+          <rect x="100" y="70" rx="6" width="80" height="36" fill="rgba(255,107,53,0.15)" stroke="#ff6b35" stroke-width="1.5"/>
+          <text x="140" y="93" fill="#ff6b35" font-size="13" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Attention</text>
+          <!-- Write arrow down with + -->
+          <line x1="140" y1="110" x2="140" y2="168" stroke="#00e676" stroke-width="2"/>
+          <circle cx="140" cy="168" r="10" fill="var(--bg-primary)" stroke="#00e676" stroke-width="1.5"/>
+          <text x="140" y="173" fill="#00e676" font-size="14" text-anchor="middle" font-weight="700" font-family="Inter, sans-serif">+</text>
+        </g>
+        <!-- MLP reads and writes -->
+        <g class="anim-step">
+          <line x1="260" y1="175" x2="260" y2="110" stroke="#b388ff" stroke-width="2" stroke-dasharray="4,3"/>
+          <rect x="220" y="70" rx="6" width="80" height="36" fill="rgba(179,136,255,0.15)" stroke="#b388ff" stroke-width="1.5"/>
+          <text x="260" y="93" fill="#b388ff" font-size="13" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">MLP</text>
+          <line x1="260" y1="110" x2="260" y2="168" stroke="#00e676" stroke-width="2"/>
+          <circle cx="260" cy="168" r="10" fill="var(--bg-primary)" stroke="#00e676" stroke-width="1.5"/>
+          <text x="260" y="173" fill="#00e676" font-size="14" text-anchor="middle" font-weight="700" font-family="Inter, sans-serif">+</text>
+        </g>
+        <!-- Enriched output -->
+        <g class="anim-step">
+          <rect x="320" y="160" rx="6" width="70" height="40" fill="rgba(0,230,118,0.15)" stroke="#00e676" stroke-width="1.5"/>
+          <text x="355" y="178" fill="#00e676" font-size="11" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">enriched</text>
+          <text x="355" y="192" fill="#00e676" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">vector</text>
+        </g>
+        <!-- Stream label -->
+        <text x="200" y="240" fill="#00d4ff" font-size="14" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">← Residual Stream →</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 15 — Attention Intuition
+     ============================================================ -->
+<section class="slide layout-center" id="slide-15">
+  <div class="slide-content">
+    <h2>Attention: "Which words matter for understanding me?"</h2>
+    <div class="diagram-container large">
+      <svg viewBox="0 0 800 280" xmlns="http://www.w3.org/2000/svg">
+        <!-- Sentence -->
+        <g>
+          <text x="55" y="140" fill="#b0b8d0" font-size="20" font-family="Inter, sans-serif">The</text>
+          <text x="115" y="140" fill="#b0b8d0" font-size="20" font-family="Inter, sans-serif">cat</text>
+          <text x="175" y="140" fill="#b0b8d0" font-size="20" font-family="Inter, sans-serif">sat</text>
+          <text x="230" y="140" fill="#b0b8d0" font-size="20" font-family="Inter, sans-serif">on</text>
+          <text x="280" y="140" fill="#b0b8d0" font-size="20" font-family="Inter, sans-serif">the</text>
+          <text x="335" y="140" fill="#b0b8d0" font-size="20" font-family="Inter, sans-serif">mat</text>
+          <text x="405" y="140" fill="#b0b8d0" font-size="20" font-family="Inter, sans-serif">because</text>
+          <text x="525" y="140" fill="#ff6b35" font-size="20" font-weight="700" font-family="Inter, sans-serif">it</text>
+          <text x="565" y="140" fill="#b0b8d0" font-size="20" font-family="Inter, sans-serif">was</text>
+          <text x="625" y="140" fill="#b0b8d0" font-size="20" font-family="Inter, sans-serif">tired</text>
+        </g>
+        <!-- Attention lines from "it" -->
+        <g class="anim-step">
+          <!-- Strong attention to "cat" -->
+          <line x1="530" y1="120" x2="125" y2="120" stroke="#00e676" stroke-width="4" opacity="0.8"/>
+          <text x="330" y="110" fill="#00e676" font-size="13" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">strong attention</text>
+        </g>
+        <g class="anim-step">
+          <!-- Weak attention lines to other words -->
+          <line x1="530" y1="122" x2="65" y2="122" stroke="#6b7394" stroke-width="1" opacity="0.3"/>
+          <line x1="530" y1="122" x2="185" y2="122" stroke="#6b7394" stroke-width="1" opacity="0.3"/>
+          <line x1="530" y1="122" x2="240" y2="122" stroke="#6b7394" stroke-width="1" opacity="0.2"/>
+          <line x1="530" y1="122" x2="290" y2="122" stroke="#6b7394" stroke-width="1" opacity="0.2"/>
+          <line x1="530" y1="122" x2="345" y2="122" stroke="#6b7394" stroke-width="1.5" opacity="0.4"/>
+          <line x1="530" y1="122" x2="435" y2="122" stroke="#6b7394" stroke-width="1" opacity="0.2"/>
+        </g>
+        <!-- Key insight -->
+        <g class="anim-step">
+          <rect x="150" y="180" rx="8" width="500" height="40" fill="rgba(255,107,53,0.08)" stroke="rgba(255,107,53,0.2)" stroke-width="1"/>
+          <text x="400" y="205" fill="#ff6b35" font-size="15" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">The model LEARNED that "it" refers to "cat" — nobody programmed this.</text>
+        </g>
+        <g class="anim-step">
+          <text x="400" y="260" fill="#ffd740" font-size="13" text-anchor="middle" font-style="italic" font-family="Inter, sans-serif">"Self-attention allows the model to associate 'it' with 'animal'" — Jay Alammar</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 16 — QKV Mechanism
+     ============================================================ -->
+<section class="slide layout-split" id="slide-16">
+  <div class="slide-text">
+    <h2>Query, Key, Value</h2>
+    <p>Each token produces three vectors:</p>
+    <div class="anim-step">
+      <div class="highlight-box orange">
+        <p style="margin:0;"><span class="text-orange">Q</span>uery = "What am I looking for?"</p>
+      </div>
+    </div>
+    <div class="anim-step">
+      <div class="highlight-box">
+        <p style="margin:0;"><span class="text-cyan">K</span>ey = "What do I contain?" (a label)</p>
+      </div>
+    </div>
+    <div class="anim-step">
+      <div class="highlight-box green">
+        <p style="margin:0;"><span class="text-green">V</span>alue = "Here's my actual info"</p>
+      </div>
+    </div>
+    <div class="anim-step">
+      <div class="key-insight">
+        <p>Like a library: Q = your question, K = book titles, V = book contents.</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-visual">
+    <div class="diagram-container">
+      <svg viewBox="0 0 400 380" xmlns="http://www.w3.org/2000/svg">
+        <!-- Token -->
+        <g class="anim-step">
+          <rect x="140" y="20" rx="8" width="120" height="40" fill="var(--bg-card)" stroke="#fff" stroke-width="1.5"/>
+          <text x="200" y="46" fill="#fff" font-size="16" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Token</text>
+        </g>
+        <!-- Three matrices producing Q, K, V -->
+        <g class="anim-step">
+          <!-- Lines from token to Q, K, V -->
+          <line x1="165" y1="62" x2="80" y2="100" stroke="#ff6b35" stroke-width="1.5"/>
+          <line x1="200" y1="62" x2="200" y2="100" stroke="#00d4ff" stroke-width="1.5"/>
+          <line x1="235" y1="62" x2="320" y2="100" stroke="#00e676" stroke-width="1.5"/>
+          <!-- Q -->
+          <rect x="40" y="100" rx="6" width="80" height="50" fill="rgba(255,107,53,0.15)" stroke="#ff6b35" stroke-width="1.5"/>
+          <text x="80" y="122" fill="#ff6b35" font-size="14" text-anchor="middle" font-weight="700" font-family="Inter, sans-serif">W_q</text>
+          <text x="80" y="140" fill="#ff6b35" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">matrix</text>
+          <line x1="80" y1="152" x2="80" y2="180" stroke="#ff6b35" stroke-width="1.5" marker-end="url(#arrowhead-orange)"/>
+          <rect x="45" y="185" rx="6" width="70" height="32" fill="rgba(255,107,53,0.25)"/>
+          <text x="80" y="206" fill="#ff6b35" font-size="16" text-anchor="middle" font-weight="700" font-family="Inter, sans-serif">Q</text>
+          <!-- K -->
+          <rect x="160" y="100" rx="6" width="80" height="50" fill="rgba(0,212,255,0.15)" stroke="#00d4ff" stroke-width="1.5"/>
+          <text x="200" y="122" fill="#00d4ff" font-size="14" text-anchor="middle" font-weight="700" font-family="Inter, sans-serif">W_k</text>
+          <text x="200" y="140" fill="#00d4ff" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">matrix</text>
+          <line x1="200" y1="152" x2="200" y2="180" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#arrowhead-cyan)"/>
+          <rect x="165" y="185" rx="6" width="70" height="32" fill="rgba(0,212,255,0.25)"/>
+          <text x="200" y="206" fill="#00d4ff" font-size="16" text-anchor="middle" font-weight="700" font-family="Inter, sans-serif">K</text>
+          <!-- V -->
+          <rect x="280" y="100" rx="6" width="80" height="50" fill="rgba(0,230,118,0.15)" stroke="#00e676" stroke-width="1.5"/>
+          <text x="320" y="122" fill="#00e676" font-size="14" text-anchor="middle" font-weight="700" font-family="Inter, sans-serif">W_v</text>
+          <text x="320" y="140" fill="#00e676" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">matrix</text>
+          <line x1="320" y1="152" x2="320" y2="180" stroke="#00e676" stroke-width="1.5" marker-end="url(#arrowhead-green)"/>
+          <rect x="285" y="185" rx="6" width="70" height="32" fill="rgba(0,230,118,0.25)"/>
+          <text x="320" y="206" fill="#00e676" font-size="16" text-anchor="middle" font-weight="700" font-family="Inter, sans-serif">V</text>
+        </g>
+        <!-- Dot product and result -->
+        <g class="anim-step">
+          <!-- Q · K → score -->
+          <line x1="80" y1="220" x2="140" y2="270" stroke="#ffd740" stroke-width="1.5"/>
+          <line x1="200" y1="220" x2="140" y2="270" stroke="#ffd740" stroke-width="1.5"/>
+          <circle cx="140" cy="275" r="16" fill="var(--bg-primary)" stroke="#ffd740" stroke-width="1.5"/>
+          <text x="140" y="280" fill="#ffd740" font-size="12" text-anchor="middle" font-weight="700" font-family="Inter, sans-serif">Q·K</text>
+          <text x="140" y="310" fill="#ffd740" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">attention</text>
+          <text x="140" y="325" fill="#ffd740" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">score</text>
+        </g>
+        <g class="anim-step">
+          <!-- Score × V → output -->
+          <line x1="158" y1="280" x2="230" y2="320" stroke="#fff" stroke-width="1.5"/>
+          <line x1="320" y1="220" x2="260" y2="320" stroke="#fff" stroke-width="1.5"/>
+          <rect x="210" y="320" rx="6" width="80" height="35" fill="rgba(255,255,255,0.1)" stroke="#fff" stroke-width="1.5"/>
+          <text x="250" y="342" fill="#fff" font-size="13" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Output</text>
+          <text x="250" y="375" fill="#6b7394" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">weighted sum of Values</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 17 — Attention Heatmap
+     ============================================================ -->
+<section class="slide layout-center" id="slide-17">
+  <div class="slide-content">
+    <h2>Attention as a Heatmap</h2>
+    <p>Each cell shows how much one token attends to another.</p>
+    <div class="diagram-container" style="max-width:600px;">
+      <svg viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg">
+        <g class="anim-step">
+          <!-- Column headers -->
+          <text x="175" y="28" fill="#6b7394" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">The</text>
+          <text x="225" y="28" fill="#6b7394" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">cat</text>
+          <text x="275" y="28" fill="#6b7394" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">sat</text>
+          <text x="325" y="28" fill="#6b7394" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">on</text>
+          <text x="375" y="28" fill="#6b7394" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">it</text>
+          <!-- Row headers -->
+          <text x="140" y="65" fill="#6b7394" font-size="11" text-anchor="end" font-family="Inter, sans-serif">The</text>
+          <text x="140" y="115" fill="#6b7394" font-size="11" text-anchor="end" font-family="Inter, sans-serif">cat</text>
+          <text x="140" y="165" fill="#6b7394" font-size="11" text-anchor="end" font-family="Inter, sans-serif">sat</text>
+          <text x="140" y="215" fill="#6b7394" font-size="11" text-anchor="end" font-family="Inter, sans-serif">on</text>
+          <text x="140" y="265" fill="#ff6b35" font-size="11" text-anchor="end" font-weight="700" font-family="Inter, sans-serif">it</text>
+          <!-- Heatmap cells - "it" row (last row) shows strong attention to "cat" -->
+          <!-- Row 1: The -->
+          <rect x="155" y="42" width="40" height="40" rx="4" fill="#00d4ff" opacity="0.7"/>
+          <rect x="205" y="42" width="40" height="40" rx="4" fill="#00d4ff" opacity="0.1"/>
+          <rect x="255" y="42" width="40" height="40" rx="4" fill="#00d4ff" opacity="0.05"/>
+          <rect x="305" y="42" width="40" height="40" rx="4" fill="#00d4ff" opacity="0.05"/>
+          <rect x="355" y="42" width="40" height="40" rx="4" fill="#00d4ff" opacity="0.05"/>
+          <!-- Row 2: cat -->
+          <rect x="155" y="92" width="40" height="40" rx="4" fill="#00d4ff" opacity="0.3"/>
+          <rect x="205" y="92" width="40" height="40" rx="4" fill="#00d4ff" opacity="0.6"/>
+          <rect x="255" y="92" width="40" height="40" rx="4" fill="#00d4ff" opacity="0.05"/>
+          <rect x="305" y="92" width="40" height="40" rx="4" fill="#00d4ff" opacity="0.05"/>
+          <rect x="355" y="92" width="40" height="40" rx="4" fill="#00d4ff" opacity="0.05"/>
+          <!-- Row 3: sat -->
+          <rect x="155" y="142" width="40" height="40" rx="4" fill="#00d4ff" opacity="0.1"/>
+          <rect x="205" y="142" width="40" height="40" rx="4" fill="#00d4ff" opacity="0.5"/>
+          <rect x="255" y="142" width="40" height="40" rx="4" fill="#00d4ff" opacity="0.3"/>
+          <rect x="305" y="142" width="40" height="40" rx="4" fill="#00d4ff" opacity="0.05"/>
+          <rect x="355" y="142" width="40" height="40" rx="4" fill="#00d4ff" opacity="0.05"/>
+          <!-- Row 4: on -->
+          <rect x="155" y="192" width="40" height="40" rx="4" fill="#00d4ff" opacity="0.05"/>
+          <rect x="205" y="192" width="40" height="40" rx="4" fill="#00d4ff" opacity="0.1"/>
+          <rect x="255" y="192" width="40" height="40" rx="4" fill="#00d4ff" opacity="0.2"/>
+          <rect x="305" y="192" width="40" height="40" rx="4" fill="#00d4ff" opacity="0.5"/>
+          <rect x="355" y="192" width="40" height="40" rx="4" fill="#00d4ff" opacity="0.05"/>
+          <!-- Row 5: it (strong attention to "cat") -->
+          <rect x="155" y="242" width="40" height="40" rx="4" fill="#00d4ff" opacity="0.05"/>
+          <rect x="205" y="242" width="40" height="40" rx="4" fill="#00e676" opacity="0.85"/>
+          <rect x="255" y="242" width="40" height="40" rx="4" fill="#00d4ff" opacity="0.15"/>
+          <rect x="305" y="242" width="40" height="40" rx="4" fill="#00d4ff" opacity="0.1"/>
+          <rect x="355" y="242" width="40" height="40" rx="4" fill="#00d4ff" opacity="0.3"/>
+        </g>
+        <!-- Annotation -->
+        <g class="anim-step">
+          <line x1="225" y1="285" x2="225" y2="310" stroke="#00e676" stroke-width="2"/>
+          <text x="225" y="330" fill="#00e676" font-size="13" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">"it" attends strongly</text>
+          <text x="225" y="348" fill="#00e676" font-size="13" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">to "cat"</text>
+        </g>
+        <!-- Formula -->
+        <g class="anim-step">
+          <text x="250" y="385" fill="#6b7394" font-size="12" text-anchor="middle" font-family="JetBrains Mono, monospace">Attention(Q,K,V) = softmax(QK^T / √d) · V</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 18 — Multi-Head Attention
+     ============================================================ -->
+<section class="slide layout-split" id="slide-18">
+  <div class="slide-text">
+    <h2>Multi-Head Attention</h2>
+    <div class="anim-step">
+      <p>Multiple attention heads run <span class="text-cyan">in parallel</span>, each looking for different relationships.</p>
+    </div>
+    <div class="anim-step">
+      <ul>
+        <li class="bullet-orange">Head 1: syntax (subject → verb)</li>
+        <li class="bullet-green">Head 2: coreference (pronoun → noun)</li>
+        <li class="bullet-purple">Head 3: proximity (nearby words)</li>
+      </ul>
+    </div>
+    <div class="anim-step">
+      <p class="small-text">GPT-4 has 128 attention heads per layer, across 120+ layers.</p>
+    </div>
+  </div>
+  <div class="slide-visual">
+    <div class="diagram-container">
+      <svg viewBox="0 0 380 350" xmlns="http://www.w3.org/2000/svg">
+        <!-- Input -->
+        <rect x="120" y="10" rx="6" width="140" height="32" fill="var(--bg-card)" stroke="#fff" stroke-width="1"/>
+        <text x="190" y="31" fill="#fff" font-size="13" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Input Token</text>
+        <!-- Parallel heads -->
+        <g class="anim-step">
+          <!-- Head 1 -->
+          <line x1="155" y1="44" x2="60" y2="80" stroke="#ff6b35" stroke-width="1.5"/>
+          <rect x="20" y="80" rx="6" width="80" height="100" fill="rgba(255,107,53,0.1)" stroke="#ff6b35" stroke-width="1"/>
+          <text x="60" y="105" fill="#ff6b35" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Head 1</text>
+          <text x="60" y="122" fill="#6b7394" font-size="10" text-anchor="middle" font-family="Inter, sans-serif">Q₁ K₁ V₁</text>
+          <text x="60" y="165" fill="#ff6b35" font-size="10" text-anchor="middle" font-family="Inter, sans-serif">syntax</text>
+          <!-- Head 2 -->
+          <line x1="185" y1="44" x2="155" y2="80" stroke="#00e676" stroke-width="1.5"/>
+          <rect x="115" y="80" rx="6" width="80" height="100" fill="rgba(0,230,118,0.1)" stroke="#00e676" stroke-width="1"/>
+          <text x="155" y="105" fill="#00e676" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Head 2</text>
+          <text x="155" y="122" fill="#6b7394" font-size="10" text-anchor="middle" font-family="Inter, sans-serif">Q₂ K₂ V₂</text>
+          <text x="155" y="165" fill="#00e676" font-size="10" text-anchor="middle" font-family="Inter, sans-serif">coreference</text>
+          <!-- Head 3 -->
+          <line x1="210" y1="44" x2="250" y2="80" stroke="#b388ff" stroke-width="1.5"/>
+          <rect x="210" y="80" rx="6" width="80" height="100" fill="rgba(179,136,255,0.1)" stroke="#b388ff" stroke-width="1"/>
+          <text x="250" y="105" fill="#b388ff" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Head 3</text>
+          <text x="250" y="122" fill="#6b7394" font-size="10" text-anchor="middle" font-family="Inter, sans-serif">Q₃ K₃ V₃</text>
+          <text x="250" y="165" fill="#b388ff" font-size="10" text-anchor="middle" font-family="Inter, sans-serif">proximity</text>
+          <!-- ... more heads -->
+          <text x="340" y="130" fill="#6b7394" font-size="18" font-family="Inter, sans-serif">...</text>
+        </g>
+        <!-- Concatenation -->
+        <g class="anim-step">
+          <line x1="60" y1="182" x2="155" y2="220" stroke="#ff6b35" stroke-width="1.5"/>
+          <line x1="155" y1="182" x2="155" y2="220" stroke="#00e676" stroke-width="1.5"/>
+          <line x1="250" y1="182" x2="155" y2="220" stroke="#b388ff" stroke-width="1.5"/>
+          <rect x="95" y="222" rx="6" width="120" height="36" fill="var(--bg-card)" stroke="#ffd740" stroke-width="1.5"/>
+          <text x="155" y="244" fill="#ffd740" font-size="13" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Concatenate</text>
+        </g>
+        <!-- Projection -->
+        <g class="anim-step">
+          <line x1="155" y1="260" x2="155" y2="285" stroke="#fff" stroke-width="1.5" marker-end="url(#arrowhead-white)"/>
+          <rect x="95" y="288" rx="6" width="120" height="36" fill="rgba(255,255,255,0.08)" stroke="#fff" stroke-width="1.5"/>
+          <text x="155" y="311" fill="#fff" font-size="13" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">W_o Projection</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 19 — MLP
+     ============================================================ -->
+<section class="slide layout-split" id="slide-19">
+  <div class="slide-text">
+    <h2>The MLP Layer</h2>
+    <div class="anim-step">
+      <p>After attention gathers context, the MLP <span class="text-purple">processes</span> it.</p>
+    </div>
+    <div class="anim-step">
+      <p>This is where much of the model's <span class="text-purple">"knowledge"</span> is stored.</p>
+    </div>
+    <div class="anim-step">
+      <div class="key-insight">
+        <p>Attention routes information. MLP processes it.</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-visual">
+    <div class="diagram-container">
+      <svg viewBox="0 0 350 340" xmlns="http://www.w3.org/2000/svg">
+        <!-- Input -->
+        <g class="anim-step">
+          <rect x="110" y="15" rx="6" width="130" height="32" fill="rgba(0,212,255,0.15)" stroke="#00d4ff" stroke-width="1"/>
+          <text x="175" y="37" fill="#00d4ff" font-size="13" text-anchor="middle" font-family="Inter, sans-serif">d dimensions</text>
+        </g>
+        <!-- Expand -->
+        <g class="anim-step">
+          <line x1="140" y1="50" x2="60" y2="90" stroke="#b388ff" stroke-width="1.5"/>
+          <line x1="175" y1="50" x2="175" y2="90" stroke="#b388ff" stroke-width="1.5"/>
+          <line x1="210" y1="50" x2="290" y2="90" stroke="#b388ff" stroke-width="1.5"/>
+          <rect x="30" y="90" rx="6" width="290" height="36" fill="rgba(179,136,255,0.15)" stroke="#b388ff" stroke-width="1.5"/>
+          <text x="175" y="113" fill="#b388ff" font-size="13" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Linear → 4d dimensions (expand)</text>
+        </g>
+        <!-- Activation -->
+        <g class="anim-step">
+          <line x1="175" y1="128" x2="175" y2="155" stroke="#ffd740" stroke-width="1.5" marker-end="url(#arrowhead-white)"/>
+          <rect x="60" y="158" rx="6" width="230" height="36" fill="rgba(255,215,64,0.1)" stroke="#ffd740" stroke-width="1.5"/>
+          <text x="175" y="181" fill="#ffd740" font-size="13" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">GELU activation (non-linearity)</text>
+        </g>
+        <!-- Compress -->
+        <g class="anim-step">
+          <line x1="175" y1="196" x2="175" y2="220" stroke="#b388ff" stroke-width="1.5" marker-end="url(#arrowhead-white)"/>
+          <line x1="80" y1="196" x2="130" y2="225" stroke="#b388ff" stroke-width="1"/>
+          <line x1="270" y1="196" x2="220" y2="225" stroke="#b388ff" stroke-width="1"/>
+          <rect x="110" y="225" rx="6" width="130" height="36" fill="rgba(0,230,118,0.12)" stroke="#00e676" stroke-width="1.5"/>
+          <text x="175" y="247" fill="#00e676" font-size="13" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Linear → d (compress)</text>
+        </g>
+        <!-- Labels -->
+        <g class="anim-step">
+          <text x="175" y="290" fill="#6b7394" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">Expand to think in higher dimension,</text>
+          <text x="175" y="308" fill="#6b7394" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">then compress the insight back down.</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 20 — Layer-by-Layer Transformation
+     ============================================================ -->
+<section class="slide layout-center" id="slide-20">
+  <div class="slide-content">
+    <h2>How Representations Transform Layer by Layer</h2>
+    <div class="diagram-container large">
+      <svg viewBox="0 0 800 310" xmlns="http://www.w3.org/2000/svg">
+        <!-- Layer labels at top -->
+        <text x="100" y="25" fill="#6b7394" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">Layer 1</text>
+        <text x="250" y="25" fill="#6b7394" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">Layer 8</text>
+        <text x="400" y="25" fill="#6b7394" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">Layer 24</text>
+        <text x="550" y="25" fill="#6b7394" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">Layer 48</text>
+        <text x="700" y="25" fill="#6b7394" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">Final</text>
+        <!-- Connecting arrows -->
+        <line x1="150" y1="130" x2="195" y2="130" stroke="#334" stroke-width="1.5" marker-end="url(#arrowhead-white)"/>
+        <line x1="300" y1="130" x2="345" y2="130" stroke="#334" stroke-width="1.5" marker-end="url(#arrowhead-white)"/>
+        <line x1="450" y1="130" x2="495" y2="130" stroke="#334" stroke-width="1.5" marker-end="url(#arrowhead-white)"/>
+        <line x1="600" y1="130" x2="645" y2="130" stroke="#334" stroke-width="1.5" marker-end="url(#arrowhead-white)"/>
+        <!-- Layer 1: Surface features -->
+        <g class="anim-step">
+          <rect x="50" y="40" rx="8" width="100" height="180" fill="var(--bg-card)" stroke="#00d4ff" stroke-width="1.5"/>
+          <rect x="62" y="55" width="76" height="10" rx="3" fill="#00d4ff" opacity="0.8"/>
+          <rect x="62" y="70" width="40" height="10" rx="3" fill="#00d4ff" opacity="0.3"/>
+          <rect x="62" y="85" width="60" height="10" rx="3" fill="#00d4ff" opacity="0.5"/>
+          <rect x="62" y="100" width="30" height="10" rx="3" fill="#00d4ff" opacity="0.2"/>
+          <rect x="62" y="115" width="50" height="10" rx="3" fill="#00d4ff" opacity="0.4"/>
+          <rect x="62" y="130" width="20" height="10" rx="3" fill="#00d4ff" opacity="0.15"/>
+          <rect x="62" y="145" width="70" height="10" rx="3" fill="#00d4ff" opacity="0.6"/>
+          <rect x="62" y="160" width="35" height="10" rx="3" fill="#00d4ff" opacity="0.25"/>
+          <text x="100" y="195" fill="#00d4ff" font-size="11" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Token identity</text>
+          <text x="100" y="210" fill="#6b7394" font-size="10" text-anchor="middle" font-family="Inter, sans-serif">spelling, position</text>
+        </g>
+        <!-- Layer 8: Syntactic -->
+        <g class="anim-step">
+          <rect x="200" y="40" rx="8" width="100" height="180" fill="var(--bg-card)" stroke="#ff6b35" stroke-width="1.5"/>
+          <rect x="212" y="55" width="50" height="10" rx="3" fill="#ff6b35" opacity="0.5"/>
+          <rect x="212" y="70" width="70" height="10" rx="3" fill="#ff6b35" opacity="0.7"/>
+          <rect x="212" y="85" width="45" height="10" rx="3" fill="#ff6b35" opacity="0.4"/>
+          <rect x="212" y="100" width="76" height="10" rx="3" fill="#ff6b35" opacity="0.8"/>
+          <rect x="212" y="115" width="30" height="10" rx="3" fill="#ff6b35" opacity="0.25"/>
+          <rect x="212" y="130" width="55" height="10" rx="3" fill="#ff6b35" opacity="0.5"/>
+          <rect x="212" y="145" width="40" height="10" rx="3" fill="#ff6b35" opacity="0.35"/>
+          <rect x="212" y="160" width="65" height="10" rx="3" fill="#ff6b35" opacity="0.6"/>
+          <text x="250" y="195" fill="#ff6b35" font-size="11" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Syntax</text>
+          <text x="250" y="210" fill="#6b7394" font-size="10" text-anchor="middle" font-family="Inter, sans-serif">grammar, structure</text>
+        </g>
+        <!-- Layer 24: Semantic -->
+        <g class="anim-step">
+          <rect x="350" y="40" rx="8" width="100" height="180" fill="var(--bg-card)" stroke="#00e676" stroke-width="1.5"/>
+          <rect x="362" y="55" width="35" height="10" rx="3" fill="#00e676" opacity="0.3"/>
+          <rect x="362" y="70" width="76" height="10" rx="3" fill="#00e676" opacity="0.9"/>
+          <rect x="362" y="85" width="60" height="10" rx="3" fill="#00e676" opacity="0.7"/>
+          <rect x="362" y="100" width="25" height="10" rx="3" fill="#00e676" opacity="0.2"/>
+          <rect x="362" y="115" width="70" height="10" rx="3" fill="#00e676" opacity="0.8"/>
+          <rect x="362" y="130" width="45" height="10" rx="3" fill="#00e676" opacity="0.4"/>
+          <rect x="362" y="145" width="76" height="10" rx="3" fill="#00e676" opacity="0.9"/>
+          <rect x="362" y="160" width="55" height="10" rx="3" fill="#00e676" opacity="0.5"/>
+          <text x="400" y="195" fill="#00e676" font-size="11" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Meaning</text>
+          <text x="400" y="210" fill="#6b7394" font-size="10" text-anchor="middle" font-family="Inter, sans-serif">concepts, relationships</text>
+        </g>
+        <!-- Layer 48: Abstract -->
+        <g class="anim-step">
+          <rect x="500" y="40" rx="8" width="100" height="180" fill="var(--bg-card)" stroke="#b388ff" stroke-width="1.5"/>
+          <rect x="512" y="55" width="20" height="10" rx="3" fill="#b388ff" opacity="0.15"/>
+          <rect x="512" y="70" width="50" height="10" rx="3" fill="#b388ff" opacity="0.45"/>
+          <rect x="512" y="85" width="76" height="10" rx="3" fill="#b388ff" opacity="0.9"/>
+          <rect x="512" y="100" width="65" height="10" rx="3" fill="#b388ff" opacity="0.75"/>
+          <rect x="512" y="115" width="40" height="10" rx="3" fill="#b388ff" opacity="0.35"/>
+          <rect x="512" y="130" width="76" height="10" rx="3" fill="#b388ff" opacity="0.85"/>
+          <rect x="512" y="145" width="30" height="10" rx="3" fill="#b388ff" opacity="0.25"/>
+          <rect x="512" y="160" width="60" height="10" rx="3" fill="#b388ff" opacity="0.6"/>
+          <text x="550" y="195" fill="#b388ff" font-size="11" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Reasoning</text>
+          <text x="550" y="210" fill="#6b7394" font-size="10" text-anchor="middle" font-family="Inter, sans-serif">intent, logic</text>
+        </g>
+        <!-- Final: Output preparation -->
+        <g class="anim-step">
+          <rect x="650" y="40" rx="8" width="100" height="180" fill="var(--bg-card)" stroke="#ffd740" stroke-width="1.5"/>
+          <rect x="662" y="55" width="10" height="10" rx="3" fill="#ffd740" opacity="0.1"/>
+          <rect x="662" y="70" width="76" height="10" rx="3" fill="#ffd740" opacity="0.95"/>
+          <rect x="662" y="85" width="20" height="10" rx="3" fill="#ffd740" opacity="0.15"/>
+          <rect x="662" y="100" width="55" height="10" rx="3" fill="#ffd740" opacity="0.5"/>
+          <rect x="662" y="115" width="76" height="10" rx="3" fill="#ffd740" opacity="0.9"/>
+          <rect x="662" y="130" width="15" height="10" rx="3" fill="#ffd740" opacity="0.1"/>
+          <rect x="662" y="145" width="45" height="10" rx="3" fill="#ffd740" opacity="0.4"/>
+          <rect x="662" y="160" width="70" height="10" rx="3" fill="#ffd740" opacity="0.7"/>
+          <text x="700" y="195" fill="#ffd740" font-size="11" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Next token</text>
+          <text x="700" y="210" fill="#6b7394" font-size="10" text-anchor="middle" font-family="Inter, sans-serif">prediction prep</text>
+        </g>
+        <!-- Bottom analogy -->
+        <g class="anim-step">
+          <text x="400" y="260" fill="#6b7394" font-size="13" text-anchor="middle" font-family="Inter, sans-serif">Early layers = eyes/ears (sensory) · Middle layers = brain (abstract thought) · Final layers = mouth (output)</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 21 — Logits and Next Token
+     ============================================================ -->
+<section class="slide layout-center" id="slide-21">
+  <div class="slide-content">
+    <h2>Next Token Prediction</h2>
+    <p>The model converts its final vector into probabilities over the <span class="text-cyan">entire vocabulary</span>.</p>
+    <div class="diagram-container large">
+      <svg viewBox="0 0 800 270" xmlns="http://www.w3.org/2000/svg">
+        <!-- Final hidden state -->
+        <g class="anim-step">
+          <rect x="30" y="40" rx="6" width="100" height="60" fill="var(--bg-card)" stroke="#b388ff" stroke-width="1.5"/>
+          <text x="80" y="65" fill="#b388ff" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Final</text>
+          <text x="80" y="82" fill="#b388ff" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">Vector</text>
+          <line x1="132" y1="70" x2="175" y2="70" stroke="#6b7394" stroke-width="1.5" marker-end="url(#arrowhead-white)"/>
+        </g>
+        <!-- Vocabulary projection -->
+        <g class="anim-step">
+          <rect x="180" y="30" rx="6" width="120" height="80" fill="rgba(255,215,64,0.08)" stroke="#ffd740" stroke-width="1.5"/>
+          <text x="240" y="58" fill="#ffd740" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Vocabulary</text>
+          <text x="240" y="76" fill="#ffd740" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">Matrix</text>
+          <text x="240" y="100" fill="#6b7394" font-size="10" text-anchor="middle" font-family="Inter, sans-serif">→ 50,000 scores</text>
+          <line x1="302" y1="70" x2="345" y2="70" stroke="#6b7394" stroke-width="1.5" marker-end="url(#arrowhead-white)"/>
+        </g>
+        <!-- Softmax → probabilities -->
+        <g class="anim-step">
+          <rect x="350" y="40" rx="6" width="90" height="55" fill="rgba(0,230,118,0.08)" stroke="#00e676" stroke-width="1.5"/>
+          <text x="395" y="62" fill="#00e676" font-size="13" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Softmax</text>
+          <text x="395" y="80" fill="#6b7394" font-size="10" text-anchor="middle" font-family="Inter, sans-serif">→ probabilities</text>
+          <line x1="442" y1="67" x2="490" y2="67" stroke="#6b7394" stroke-width="1.5" marker-end="url(#arrowhead-white)"/>
+        </g>
+        <!-- Probability bars -->
+        <g class="anim-step">
+          <text x="500" y="25" fill="#6b7394" font-size="11" font-family="Inter, sans-serif">Top predictions for "The cat sat on the ___"</text>
+          <text x="500" y="55" fill="#b0b8d0" font-size="13" font-family="JetBrains Mono, monospace">mat</text>
+          <rect x="548" y="42" rx="3" width="180" height="18" fill="#00e676" opacity="0.7"/>
+          <text x="740" y="56" fill="#00e676" font-size="12" font-family="JetBrains Mono, monospace">42%</text>
+          <text x="500" y="80" fill="#b0b8d0" font-size="13" font-family="JetBrains Mono, monospace">floor</text>
+          <rect x="548" y="67" rx="3" width="105" height="18" fill="#00d4ff" opacity="0.5"/>
+          <text x="665" y="81" fill="#00d4ff" font-size="12" font-family="JetBrains Mono, monospace">24%</text>
+          <text x="500" y="105" fill="#b0b8d0" font-size="13" font-family="JetBrains Mono, monospace">table</text>
+          <rect x="548" y="92" rx="3" width="52" height="18" fill="#ff6b35" opacity="0.4"/>
+          <text x="612" y="106" fill="#ff6b35" font-size="12" font-family="JetBrains Mono, monospace">12%</text>
+          <text x="500" y="130" fill="#b0b8d0" font-size="13" font-family="JetBrains Mono, monospace">couch</text>
+          <rect x="548" y="117" rx="3" width="30" height="18" fill="#b388ff" opacity="0.3"/>
+          <text x="590" y="131" fill="#b388ff" font-size="12" font-family="JetBrains Mono, monospace">7%</text>
+          <text x="550" y="155" fill="#6b7394" font-size="11" font-family="Inter, sans-serif">...49,996 more tokens</text>
+        </g>
+        <!-- Autoregressive loop -->
+        <g class="anim-step">
+          <rect x="200" y="180" rx="8" width="400" height="50" fill="rgba(0,212,255,0.06)" stroke="rgba(0,212,255,0.2)" stroke-width="1"/>
+          <text x="400" y="200" fill="#00d4ff" font-size="14" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Sample "mat" → feed back as input → repeat</text>
+          <text x="400" y="220" fill="#6b7394" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">This autoregressive loop generates text one token at a time</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 22 — Transition: How Does It Learn?
+     ============================================================ -->
+<section class="slide section-transition layout-center" id="slide-22">
+  <div class="slide-content">
+    <p class="label text-cyan">Act III</p>
+    <h2>Growing Intelligence</h2>
+    <div class="anim-step">
+      <p>The architecture exists. But how do <span class="text-orange">random weights</span> become intelligent?</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 23 — Grown Not Engineered
+     ============================================================ -->
+<section class="slide layout-center" id="slide-23">
+  <div class="slide-content">
+    <h2>"Grown, Not Engineered"</h2>
+    <div class="anim-step">
+      <blockquote>
+        <p>"Because we did not build the thing, what we build is a process which builds the thing."</p>
+        <span class="attribution">— Ilya Sutskever</span>
+      </blockquote>
+    </div>
+    <div class="anim-step">
+      <blockquote>
+        <p>"You can think of training a neural network as a process of maybe alchemy or transmutation — refining crude material, which is the data."</p>
+        <span class="attribution">— Ilya Sutskever</span>
+      </blockquote>
+    </div>
+    <div class="anim-step">
+      <div class="key-insight">
+        <p>Nobody programs an LLM. We set up conditions for intelligence to emerge from data + optimization.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 24 — Cross-Entropy Loss
+     ============================================================ -->
+<section class="slide layout-split" id="slide-24">
+  <div class="slide-text">
+    <h2>Cross-Entropy Loss</h2>
+    <div class="anim-step">
+      <p>The model learns by predicting the next word and being scored on <span class="text-cyan">how surprised</span> it is.</p>
+    </div>
+    <div class="anim-step">
+      <div class="highlight-box green">
+        <p style="margin:0;">Predicted "mat" at 90% → Loss = 0.10 (low surprise)</p>
+      </div>
+    </div>
+    <div class="anim-step">
+      <div class="highlight-box pink">
+        <p style="margin:0;">Predicted "mat" at 1% → Loss = 4.6 (extreme surprise!)</p>
+      </div>
+    </div>
+    <div class="anim-step">
+      <div class="key-insight">
+        <p>The logarithm makes the penalty <strong>extreme</strong> for confident wrong answers.</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-visual">
+    <div class="diagram-container">
+      <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+        <text x="200" y="25" fill="#6b7394" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">LOSS = −log(predicted probability)</text>
+        <!-- Axes -->
+        <line x1="60" y1="260" x2="370" y2="260" stroke="#334" stroke-width="1.5"/>
+        <line x1="60" y1="260" x2="60" y2="40" stroke="#334" stroke-width="1.5"/>
+        <text x="220" y="290" fill="#6b7394" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">Predicted probability of correct token →</text>
+        <text x="25" y="150" fill="#6b7394" font-size="11" text-anchor="middle" font-family="Inter, sans-serif" transform="rotate(-90,25,150)">Loss →</text>
+        <!-- -log(x) curve -->
+        <g class="anim-step">
+          <path d="M 65,40 Q 90,80 110,120 Q 140,170 180,200 Q 230,230 280,245 Q 330,255 365,258" fill="none" stroke="#ff4081" stroke-width="3"/>
+        </g>
+        <!-- Annotation points -->
+        <g class="anim-step">
+          <!-- Low prob = high loss -->
+          <circle cx="80" cy="55" r="6" fill="#ff4081"/>
+          <text x="100" y="50" fill="#ff4081" font-size="12" font-family="Inter, sans-serif">p=0.01 → Loss=4.6</text>
+          <text x="100" y="66" fill="#ff4081" font-size="11" font-family="Inter, sans-serif">"I was so wrong!"</text>
+        </g>
+        <g class="anim-step">
+          <!-- High prob = low loss -->
+          <circle cx="340" cy="250" r="6" fill="#00e676"/>
+          <text x="280" y="238" fill="#00e676" font-size="12" font-family="Inter, sans-serif">p=0.90 → Loss=0.10</text>
+          <text x="280" y="222" fill="#00e676" font-size="11" font-family="Inter, sans-serif">"I knew it!"</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 25 — Loss Landscape
+     ============================================================ -->
+<section class="slide layout-split" id="slide-25">
+  <div class="slide-text">
+    <h2>The Loss Landscape</h2>
+    <div class="anim-step">
+      <p>Training = finding the <span class="text-green">lowest valley</span> in a vast mountain range.</p>
+    </div>
+    <div class="anim-step">
+      <p><span class="text-cyan">SGD</span> (Stochastic Gradient Descent) rolls a ball downhill with some randomness.</p>
+    </div>
+    <div class="anim-step">
+      <div class="key-insight">
+        <p>Wide, flat valleys generalize better than sharp, narrow ones. Skip connections in transformers smooth the landscape.</p>
+      </div>
+    </div>
+    <div class="anim-step">
+      <p class="citation">Li et al., "Visualizing the Loss Landscape of Neural Nets," 2018</p>
+    </div>
+  </div>
+  <div class="slide-visual">
+    <div class="diagram-container">
+      <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+        <!-- Simplified 2D loss landscape -->
+        <g class="anim-step">
+          <path d="M 20,120 Q 60,60 100,100 Q 130,130 150,80 Q 180,30 210,90 Q 240,140 260,110 Q 290,70 310,160 Q 340,200 360,180 Q 380,165 395,170" fill="none" stroke="#ff6b35" stroke-width="3"/>
+          <text x="200" y="22" fill="#6b7394" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">Loss</text>
+          <line x1="10" y1="210" x2="395" y2="210" stroke="#334" stroke-width="1"/>
+          <text x="200" y="230" fill="#6b7394" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">Parameter space →</text>
+        </g>
+        <!-- Ball rolling down -->
+        <g class="anim-step">
+          <circle cx="70" cy="72" r="8" fill="#00d4ff"/>
+          <text x="70" y="65" fill="#00d4ff" font-size="11" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">start</text>
+          <!-- Path of descent -->
+          <path d="M 70,72 Q 100,95 130,120 Q 160,90 180,40 Q 200,70 210,90" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-dasharray="4,3"/>
+        </g>
+        <!-- Two minima comparison -->
+        <g class="anim-step">
+          <!-- Sharp minimum -->
+          <rect x="150" y="245" rx="4" width="80" height="45" fill="rgba(255,64,129,0.08)" stroke="rgba(255,64,129,0.3)" stroke-width="1"/>
+          <text x="190" y="262" fill="#ff4081" font-size="11" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Sharp valley</text>
+          <text x="190" y="278" fill="#ff4081" font-size="10" text-anchor="middle" font-family="Inter, sans-serif">overfits :(</text>
+          <!-- Wide minimum -->
+          <rect x="280" y="245" rx="4" width="80" height="45" fill="rgba(0,230,118,0.08)" stroke="rgba(0,230,118,0.3)" stroke-width="1"/>
+          <text x="320" y="262" fill="#00e676" font-size="11" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Wide valley</text>
+          <text x="320" y="278" fill="#00e676" font-size="10" text-anchor="middle" font-family="Inter, sans-serif">generalizes :)</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 26 — Pre-Training
+     ============================================================ -->
+<section class="slide layout-center" id="slide-26">
+  <div class="slide-content">
+    <p class="label">Stage 1 of 3</p>
+    <h2>Pre-Training: Massive Multi-Task Learning</h2>
+    <div class="anim-step">
+      <div class="diagram-container large">
+        <svg viewBox="0 0 800 180" xmlns="http://www.w3.org/2000/svg">
+          <!-- Data sources -->
+          <rect x="30" y="20" rx="8" width="150" height="130" fill="var(--bg-card)" stroke="#334" stroke-width="1"/>
+          <text x="105" y="48" fill="#00d4ff" font-size="13" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Training Data</text>
+          <text x="105" y="70" fill="#6b7394" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">Wikipedia</text>
+          <text x="105" y="88" fill="#6b7394" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">Books, Code</text>
+          <text x="105" y="106" fill="#6b7394" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">Web pages</text>
+          <text x="105" y="124" fill="#ffd740" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">~44 TB of text</text>
+          <text x="105" y="140" fill="#ffd740" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">trillions of tokens</text>
+          <!-- Arrow -->
+          <line x1="185" y1="85" x2="235" y2="85" stroke="#6b7394" stroke-width="2" marker-end="url(#arrowhead-white)"/>
+          <!-- Task: predict next token -->
+          <rect x="240" y="35" rx="8" width="170" height="100" fill="rgba(255,107,53,0.08)" stroke="#ff6b35" stroke-width="1.5"/>
+          <text x="325" y="62" fill="#ff6b35" font-size="13" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Task:</text>
+          <text x="325" y="82" fill="#ff6b35" font-size="13" text-anchor="middle" font-family="Inter, sans-serif">Predict</text>
+          <text x="325" y="100" fill="#ff6b35" font-size="13" text-anchor="middle" font-family="Inter, sans-serif">next token</text>
+          <text x="325" y="125" fill="#6b7394" font-size="10" text-anchor="middle" font-family="Inter, sans-serif">for every position</text>
+          <!-- Arrow -->
+          <line x1="415" y1="85" x2="460" y2="85" stroke="#6b7394" stroke-width="2" marker-end="url(#arrowhead-white)"/>
+          <!-- Result -->
+          <rect x="465" y="30" rx="8" width="310" height="110" fill="rgba(0,230,118,0.06)" stroke="#00e676" stroke-width="1.5"/>
+          <text x="620" y="58" fill="#00e676" font-size="13" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Base Model learns:</text>
+          <text x="620" y="78" fill="#b0b8d0" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">Grammar · Facts · Reasoning patterns</text>
+          <text x="620" y="96" fill="#b0b8d0" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">World knowledge · Code · Math</text>
+          <text x="620" y="114" fill="#b0b8d0" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">Multiple languages · Common sense</text>
+          <text x="620" y="132" fill="#6b7394" font-size="10" text-anchor="middle" font-family="Inter, sans-serif">all from predicting the next word</text>
+        </svg>
+      </div>
+    </div>
+    <div class="anim-step">
+      <blockquote>
+        <p>"Predicting the next token well means that you understand the underlying reality that led to the creation of that token."</p>
+        <span class="attribution">— Ilya Sutskever</span>
+      </blockquote>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 27 — Base Model
+     ============================================================ -->
+<section class="slide layout-center" id="slide-27">
+  <div class="slide-content">
+    <h2>"An Expensive Autocomplete"</h2>
+    <p>The base model has knowledge but doesn't know how to be <span class="text-orange">helpful</span>.</p>
+    <div class="anim-step">
+      <div class="example-row">
+        <div class="example-box">
+          <div class="example-label" style="color:var(--accent-orange);">Input</div>
+          <p style="font-family:var(--font-mono);font-size:clamp(14px,1.5vw,22px);">What is the capital of France?</p>
+        </div>
+        <div class="example-box">
+          <div class="example-label" style="color:var(--accent-pink);">Base model output</div>
+          <p style="font-family:var(--font-mono);font-size:clamp(14px,1.5vw,22px);">What is the capital of Germany? What is the capital of Spain? ...</p>
+        </div>
+      </div>
+    </div>
+    <div class="anim-step">
+      <p style="margin-top:16px;">It just continues the pattern — it doesn't <em>answer</em>.</p>
+    </div>
+    <div class="anim-step">
+      <blockquote>
+        <p>"At its core, a base model is just an expensive autocomplete."</p>
+        <span class="attribution">— Andrej Karpathy</span>
+      </blockquote>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 28 — SFT
+     ============================================================ -->
+<section class="slide layout-center" id="slide-28">
+  <div class="slide-content">
+    <p class="label">Stage 2 of 3</p>
+    <h2>Instruction Tuning (SFT)</h2>
+    <div class="anim-step">
+      <p>Train on curated instruction-response pairs (~100K examples).</p>
+    </div>
+    <div class="anim-step">
+      <div class="example-row">
+        <div class="example-box">
+          <div class="example-label" style="color:var(--accent-cyan);">Training Example</div>
+          <p style="font-size:clamp(14px,1.5vw,20px);"><strong>User:</strong> What is photosynthesis?</p>
+          <p style="font-size:clamp(14px,1.5vw,20px);"><strong>Assistant:</strong> Photosynthesis is the process by which plants convert sunlight into energy...</p>
+        </div>
+      </div>
+    </div>
+    <div class="anim-step">
+      <div class="key-insight">
+        <p>SFT teaches format and personality — the chat template. Much smaller data, but high quality.</p>
+      </div>
+    </div>
+    <div class="anim-step">
+      <blockquote>
+        <p>"It's the human touch in post-training that gives it a soul."</p>
+        <span class="attribution">— Andrej Karpathy</span>
+      </blockquote>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 29 — RLHF
+     ============================================================ -->
+<section class="slide layout-center" id="slide-29">
+  <div class="slide-content">
+    <p class="label">Stage 3 of 3</p>
+    <h2>RLHF: Learning Preferences</h2>
+    <div class="diagram-container large">
+      <svg viewBox="0 0 800 250" xmlns="http://www.w3.org/2000/svg">
+        <!-- Step 1: Generate pairs -->
+        <g class="anim-step">
+          <rect x="20" y="20" rx="8" width="160" height="90" fill="var(--bg-card)" stroke="#ff6b35" stroke-width="1.5"/>
+          <text x="100" y="45" fill="#ff6b35" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">1. Generate</text>
+          <text x="100" y="65" fill="#b0b8d0" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">Model produces</text>
+          <text x="100" y="82" fill="#b0b8d0" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">2+ responses to</text>
+          <text x="100" y="99" fill="#b0b8d0" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">same prompt</text>
+          <line x1="183" y1="65" x2="218" y2="65" stroke="#6b7394" stroke-width="1.5" marker-end="url(#arrowhead-white)"/>
+        </g>
+        <!-- Step 2: Human ranks -->
+        <g class="anim-step">
+          <rect x="220" y="20" rx="8" width="160" height="90" fill="var(--bg-card)" stroke="#ffd740" stroke-width="1.5"/>
+          <text x="300" y="45" fill="#ffd740" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">2. Human Ranks</text>
+          <text x="300" y="65" fill="#b0b8d0" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">"Response A is</text>
+          <text x="300" y="82" fill="#b0b8d0" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">better than B"</text>
+          <line x1="383" y1="65" x2="418" y2="65" stroke="#6b7394" stroke-width="1.5" marker-end="url(#arrowhead-white)"/>
+        </g>
+        <!-- Step 3: Reward model -->
+        <g class="anim-step">
+          <rect x="420" y="20" rx="8" width="160" height="90" fill="var(--bg-card)" stroke="#b388ff" stroke-width="1.5"/>
+          <text x="500" y="45" fill="#b388ff" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">3. Reward Model</text>
+          <text x="500" y="65" fill="#b0b8d0" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">Learn to predict</text>
+          <text x="500" y="82" fill="#b0b8d0" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">human preferences</text>
+          <line x1="583" y1="65" x2="618" y2="65" stroke="#6b7394" stroke-width="1.5" marker-end="url(#arrowhead-white)"/>
+        </g>
+        <!-- Step 4: RL optimization -->
+        <g class="anim-step">
+          <rect x="620" y="20" rx="8" width="160" height="90" fill="var(--bg-card)" stroke="#00e676" stroke-width="1.5"/>
+          <text x="700" y="45" fill="#00e676" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">4. RL (PPO)</text>
+          <text x="700" y="65" fill="#b0b8d0" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">Optimize model to</text>
+          <text x="700" y="82" fill="#b0b8d0" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">maximize reward</text>
+        </g>
+        <!-- Bottom insight -->
+        <g class="anim-step">
+          <rect x="100" y="140" rx="8" width="600" height="50" fill="rgba(0,212,255,0.06)" stroke="rgba(0,212,255,0.2)" stroke-width="1"/>
+          <text x="400" y="162" fill="#00d4ff" font-size="14" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">This is where the model learns nuance:</text>
+          <text x="400" y="180" fill="#b0b8d0" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">helpful but not harmful · confident but not overconfident · concise but thorough</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 30 — Three Stages Summary
+     ============================================================ -->
+<section class="slide layout-center" id="slide-30">
+  <div class="slide-content">
+    <h2>The Full Training Pipeline</h2>
+    <div class="anim-step">
+      <table class="slide-table">
+        <thead>
+          <tr><th>Stage</th><th>Data</th><th>Goal</th><th>Result</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="text-cyan">Pre-training</span></td>
+            <td>Trillions of tokens</td>
+            <td>Predict next word</td>
+            <td>Knowledge (raw)</td>
+          </tr>
+          <tr>
+            <td><span class="text-orange">SFT</span></td>
+            <td>~100K curated pairs</td>
+            <td>Follow instructions</td>
+            <td>Conversational</td>
+          </tr>
+          <tr>
+            <td><span class="text-green">RLHF</span></td>
+            <td>Human rankings</td>
+            <td>Align with values</td>
+            <td>Helpful & honest</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 31 — GRPO and Modern RL
+     ============================================================ -->
+<section class="slide layout-split" id="slide-31">
+  <div class="slide-text">
+    <p class="label">2024-2025</p>
+    <h2>The Reasoning Revolution</h2>
+    <div class="anim-step">
+      <p>New paradigm: train models to <span class="text-cyan">think</span>, not just respond.</p>
+    </div>
+    <div class="anim-step">
+      <p><span class="text-orange">GRPO</span> (DeepSeek): eliminate the critic. Generate multiple answers, compare within the group.</p>
+    </div>
+    <div class="anim-step">
+      <div class="highlight-box green">
+        <p style="margin:0;">For <strong>verifiable domains</strong> (math, code) — no human judges needed. Just check: is the answer correct?</p>
+      </div>
+    </div>
+    <div class="anim-step">
+      <blockquote>
+        <p>"An aha moment for us, allowing us to witness the power and beauty of reinforcement learning."</p>
+        <span class="attribution">— DeepSeek team, on R1 spontaneously learning to reason</span>
+      </blockquote>
+    </div>
+  </div>
+  <div class="slide-visual">
+    <div class="diagram-container">
+      <svg viewBox="0 0 380 300" xmlns="http://www.w3.org/2000/svg">
+        <!-- GRPO concept -->
+        <g class="anim-step">
+          <text x="190" y="20" fill="#6b7394" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">GRPO: Group Comparison</text>
+          <!-- Prompt -->
+          <rect x="130" y="30" rx="6" width="120" height="30" fill="var(--bg-card)" stroke="#fff" stroke-width="1"/>
+          <text x="190" y="50" fill="#fff" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">Prompt</text>
+        </g>
+        <!-- Multiple responses -->
+        <g class="anim-step">
+          <line x1="160" y1="62" x2="70" y2="90" stroke="#6b7394" stroke-width="1"/>
+          <line x1="180" y1="62" x2="140" y2="90" stroke="#6b7394" stroke-width="1"/>
+          <line x1="200" y1="62" x2="240" y2="90" stroke="#6b7394" stroke-width="1"/>
+          <line x1="220" y1="62" x2="310" y2="90" stroke="#6b7394" stroke-width="1"/>
+          <rect x="30" y="90" rx="4" width="80" height="50" fill="rgba(255,64,129,0.1)" stroke="#ff4081" stroke-width="1"/>
+          <text x="70" y="112" fill="#ff4081" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">Ans 1 ✗</text>
+          <text x="70" y="130" fill="#6b7394" font-size="10" text-anchor="middle" font-family="Inter, sans-serif">r = -1</text>
+          <rect x="120" y="90" rx="4" width="80" height="50" fill="rgba(0,230,118,0.1)" stroke="#00e676" stroke-width="1"/>
+          <text x="160" y="112" fill="#00e676" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">Ans 2 ✓</text>
+          <text x="160" y="130" fill="#6b7394" font-size="10" text-anchor="middle" font-family="Inter, sans-serif">r = +1</text>
+          <rect x="210" y="90" rx="4" width="80" height="50" fill="rgba(0,230,118,0.1)" stroke="#00e676" stroke-width="1"/>
+          <text x="250" y="112" fill="#00e676" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">Ans 3 ✓</text>
+          <text x="250" y="130" fill="#6b7394" font-size="10" text-anchor="middle" font-family="Inter, sans-serif">r = +1</text>
+          <rect x="300" y="90" rx="4" width="80" height="50" fill="rgba(255,64,129,0.1)" stroke="#ff4081" stroke-width="1"/>
+          <text x="340" y="112" fill="#ff4081" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">Ans 4 ✗</text>
+          <text x="340" y="130" fill="#6b7394" font-size="10" text-anchor="middle" font-family="Inter, sans-serif">r = -1</text>
+        </g>
+        <!-- Group comparison -->
+        <g class="anim-step">
+          <rect x="60" y="160" rx="6" width="260" height="35" fill="rgba(255,215,64,0.08)" stroke="#ffd740" stroke-width="1"/>
+          <text x="190" y="182" fill="#ffd740" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Mean reward = 0 → normalize within group</text>
+        </g>
+        <!-- Result -->
+        <g class="anim-step">
+          <line x1="190" y1="197" x2="190" y2="220" stroke="#6b7394" stroke-width="1.5" marker-end="url(#arrowhead-white)"/>
+          <rect x="70" y="225" rx="6" width="240" height="55" fill="rgba(0,212,255,0.06)" stroke="rgba(0,212,255,0.2)" stroke-width="1"/>
+          <text x="190" y="248" fill="#00d4ff" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">Reinforce correct answers</text>
+          <text x="190" y="268" fill="#6b7394" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">AIME math: 15.6% → 77.9%</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 32 — Transition: Looking Inside
+     ============================================================ -->
+<section class="slide section-transition layout-center" id="slide-32">
+  <div class="slide-content">
+    <p class="label text-cyan">Act IV</p>
+    <h2>Looking Inside</h2>
+    <div class="anim-step">
+      <p>What does the model actually <span class="text-cyan">learn</span>? Can we peek inside?</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 33 — Superposition
+     ============================================================ -->
+<section class="slide layout-split" id="slide-33">
+  <div class="slide-text">
+    <h2>Superposition</h2>
+    <div class="anim-step">
+      <p>Networks have N neurons but need to represent <span class="text-pink">far more than N concepts</span>.</p>
+    </div>
+    <div class="anim-step">
+      <p>Solution: pack features at <span class="text-cyan">almost-orthogonal angles</span> — like sticks in a corner.</p>
+    </div>
+    <div class="anim-step">
+      <div class="key-insight">
+        <p>When features are sparse (rarely active together), they can share space without interfering.</p>
+      </div>
+    </div>
+    <div class="anim-step">
+      <p class="citation">Anthropic, "Toy Models of Superposition," 2022</p>
+    </div>
+  </div>
+  <div class="slide-visual">
+    <div class="diagram-container">
+      <svg viewBox="0 0 400 340" xmlns="http://www.w3.org/2000/svg">
+        <!-- 2D: 2 features, 2 dims — easy -->
+        <g class="anim-step">
+          <text x="100" y="22" fill="#6b7394" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">2 features, 2 dims</text>
+          <line x1="100" y1="120" x2="100" y2="35" stroke="#00d4ff" stroke-width="2" marker-end="url(#arrowhead-cyan)"/>
+          <line x1="100" y1="120" x2="185" y2="120" stroke="#ff6b35" stroke-width="2" marker-end="url(#arrowhead-orange)"/>
+          <text x="100" y="140" fill="#00e676" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">Easy! ✓</text>
+        </g>
+        <!-- 2D: 3 features — triangle -->
+        <g class="anim-step">
+          <text x="310" y="22" fill="#6b7394" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">3 features, 2 dims</text>
+          <line x1="310" y1="85" x2="310" y2="35" stroke="#00d4ff" stroke-width="2" marker-end="url(#arrowhead-cyan)"/>
+          <line x1="310" y1="85" x2="360" y2="125" stroke="#ff6b35" stroke-width="2" marker-end="url(#arrowhead-orange)"/>
+          <line x1="310" y1="85" x2="260" y2="125" stroke="#00e676" stroke-width="2" marker-end="url(#arrowhead-green)"/>
+          <text x="310" y="148" fill="#ffd740" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">120° apart — superposition!</text>
+        </g>
+        <!-- More features = more creative packing -->
+        <g class="anim-step">
+          <text x="200" y="180" fill="#6b7394" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">As features increase, geometry gets creative:</text>
+          <!-- Pentagon: 5 features -->
+          <g transform="translate(100, 260)">
+            <line x1="0" y1="-35" x2="33" y2="-11" stroke="#ff4081" stroke-width="2"/>
+            <line x1="33" y1="-11" x2="20" y2="28" stroke="#b388ff" stroke-width="2"/>
+            <line x1="20" y1="28" x2="-20" y2="28" stroke="#ffd740" stroke-width="2"/>
+            <line x1="-20" y1="28" x2="-33" y2="-11" stroke="#00e676" stroke-width="2"/>
+            <line x1="-33" y1="-11" x2="0" y2="-35" stroke="#00d4ff" stroke-width="2"/>
+            <circle cx="0" cy="-35" r="4" fill="#00d4ff"/>
+            <circle cx="33" cy="-11" r="4" fill="#ff4081"/>
+            <circle cx="20" cy="28" r="4" fill="#b388ff"/>
+            <circle cx="-20" cy="28" r="4" fill="#ffd740"/>
+            <circle cx="-33" cy="-11" r="4" fill="#00e676"/>
+            <text x="0" y="50" fill="#6b7394" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">Pentagon: 5 features</text>
+          </g>
+          <!-- Tetrahedron: 4 features in 3D -->
+          <g transform="translate(300, 260)">
+            <line x1="0" y1="-40" x2="35" y2="20" stroke="#00d4ff" stroke-width="2"/>
+            <line x1="0" y1="-40" x2="-35" y2="20" stroke="#ff6b35" stroke-width="2"/>
+            <line x1="0" y1="-40" x2="0" y2="35" stroke="#b388ff" stroke-width="2"/>
+            <line x1="35" y1="20" x2="-35" y2="20" stroke="#6b7394" stroke-width="1" stroke-dasharray="4,3"/>
+            <line x1="35" y1="20" x2="0" y2="35" stroke="#6b7394" stroke-width="1" stroke-dasharray="4,3"/>
+            <line x1="-35" y1="20" x2="0" y2="35" stroke="#6b7394" stroke-width="1" stroke-dasharray="4,3"/>
+            <circle cx="0" cy="-40" r="4" fill="#00d4ff"/>
+            <circle cx="35" cy="20" r="4" fill="#ff6b35"/>
+            <circle cx="-35" cy="20" r="4" fill="#00e676"/>
+            <circle cx="0" cy="35" r="4" fill="#b388ff"/>
+            <text x="0" y="55" fill="#6b7394" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">Tetrahedron: 4 in 3D</text>
+          </g>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 34 — Golden Gate Claude
+     ============================================================ -->
+<section class="slide layout-center" id="slide-34">
+  <div class="slide-content">
+    <p class="label">May 2024 — A Window Into the Mind</p>
+    <h2>Golden Gate Claude</h2>
+    <div class="anim-step">
+      <p>Anthropic found specific <span class="text-cyan">"features"</span> inside Claude — directions in activation space that correspond to real concepts.</p>
+    </div>
+    <div class="anim-step">
+      <p>They found the <span class="text-orange">Golden Gate Bridge</span> feature cluster and amplified it to 10×.</p>
+    </div>
+    <div class="anim-step">
+      <div class="example-row">
+        <div class="example-box">
+          <div class="example-label" style="color:var(--accent-orange);">Prompt</div>
+          <p style="font-size:clamp(14px,1.5vw,22px);">What do you look like?</p>
+        </div>
+        <div class="example-box">
+          <div class="example-label" style="color:var(--accent-pink);">Golden Gate Claude</div>
+          <p style="font-size:clamp(14px,1.5vw,22px);">"I am the Golden Gate Bridge... my physical form is the iconic bridge itself"</p>
+        </div>
+      </div>
+    </div>
+    <div class="anim-step">
+      <div class="key-insight">
+        <p>First ever detailed look inside a production-grade LLM.</p>
+      </div>
+      <p class="citation">Anthropic, "Scaling Monosemanticity," May 2024</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 35 — Planning Ahead
+     ============================================================ -->
+<section class="slide layout-split" id="slide-35">
+  <div class="slide-text">
+    <h2>Models Plan Ahead</h2>
+    <div class="anim-step">
+      <p>LLMs don't just predict one word at a time — they <span class="text-green">plan backwards</span>.</p>
+    </div>
+    <div class="anim-step">
+      <p>When writing a rhyming couplet, Claude picks the <span class="text-orange">end word first</span>, then constructs the line to reach it.</p>
+    </div>
+    <div class="anim-step">
+      <div class="key-insight">
+        <p>Suppress "rabbit" feature → model switches to "habit".<br>Inject "green" → entire line restructures.</p>
+      </div>
+    </div>
+    <div class="anim-step">
+      <p class="citation">Anthropic, "On the Biology of a Large Language Model," 2025</p>
+    </div>
+  </div>
+  <div class="slide-visual">
+    <div class="diagram-container">
+      <svg viewBox="0 0 400 320" xmlns="http://www.w3.org/2000/svg">
+        <!-- Natural planning -->
+        <g class="anim-step">
+          <text x="200" y="22" fill="#6b7394" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">NATURAL PLANNING</text>
+          <rect x="20" y="30" rx="6" width="360" height="55" fill="rgba(0,230,118,0.08)" stroke="#00e676" stroke-width="1"/>
+          <text x="200" y="52" fill="#b0b8d0" font-size="13" text-anchor="middle" font-family="Inter, sans-serif">"He saw a furry creature and</text>
+          <text x="200" y="72" fill="#b0b8d0" font-size="13" text-anchor="middle" font-family="Inter, sans-serif">decided to go and grab it"</text>
+          <!-- Arrow showing planning -->
+          <line x1="330" y1="90" x2="330" y2="120" stroke="#00e676" stroke-width="2" marker-end="url(#arrowhead-green)"/>
+          <rect x="220" y="125" rx="6" width="160" height="35" fill="rgba(0,230,118,0.15)" stroke="#00e676" stroke-width="1.5"/>
+          <text x="300" y="147" fill="#00e676" font-size="14" text-anchor="middle" font-weight="700" font-family="Inter, sans-serif">→ "rabbit" ✓</text>
+        </g>
+        <!-- Suppressed -->
+        <g class="anim-step">
+          <text x="200" y="185" fill="#6b7394" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">SUPPRESS "rabbit" FEATURE</text>
+          <rect x="20" y="195" rx="6" width="360" height="35" fill="rgba(255,64,129,0.08)" stroke="#ff4081" stroke-width="1"/>
+          <text x="200" y="217" fill="#b0b8d0" font-size="13" text-anchor="middle" font-family="Inter, sans-serif">Line restructures entirely...</text>
+          <rect x="220" y="240" rx="6" width="160" height="35" fill="rgba(255,64,129,0.15)" stroke="#ff4081" stroke-width="1.5"/>
+          <text x="300" y="262" fill="#ff4081" font-size="14" text-anchor="middle" font-weight="700" font-family="Inter, sans-serif">→ "habit" instead</text>
+        </g>
+        <!-- Metaphor -->
+        <g class="anim-step">
+          <rect x="40" y="288" rx="6" width="320" height="28" fill="rgba(255,215,64,0.06)"/>
+          <text x="200" y="307" fill="#ffd740" font-size="12" text-anchor="middle" font-style="italic" font-family="Inter, sans-serif">Like a poet who picks the rhyme first, then writes backward</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 36 — Multilingual Language of Thought
+     ============================================================ -->
+<section class="slide layout-center" id="slide-36">
+  <div class="slide-content">
+    <h2>The Language of Thought</h2>
+    <p>When Claude thinks, it thinks in <span class="text-cyan">concepts</span> — not words.</p>
+    <div class="anim-step">
+      <div class="diagram-container" style="max-width:700px;">
+        <svg viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg">
+          <!-- Three languages, same internal features -->
+          <rect x="20" y="20" rx="6" width="180" height="50" fill="rgba(0,212,255,0.1)" stroke="#00d4ff" stroke-width="1"/>
+          <text x="110" y="50" fill="#00d4ff" font-size="13" text-anchor="middle" font-family="Inter, sans-serif">EN: "opposite of small"</text>
+          <rect x="260" y="20" rx="6" width="180" height="50" fill="rgba(255,107,53,0.1)" stroke="#ff6b35" stroke-width="1"/>
+          <text x="350" y="50" fill="#ff6b35" font-size="13" text-anchor="middle" font-family="Inter, sans-serif">FR: "contraire de petit"</text>
+          <rect x="500" y="20" rx="6" width="180" height="50" fill="rgba(0,230,118,0.1)" stroke="#00e676" stroke-width="1"/>
+          <text x="590" y="50" fill="#00e676" font-size="13" text-anchor="middle" font-family="Inter, sans-serif">ZH: "小的反义词"</text>
+          <!-- Arrows down to shared features -->
+          <line x1="110" y1="72" x2="350" y2="110" stroke="#00d4ff" stroke-width="1.5"/>
+          <line x1="350" y1="72" x2="350" y2="110" stroke="#ff6b35" stroke-width="1.5"/>
+          <line x1="590" y1="72" x2="350" y2="110" stroke="#00e676" stroke-width="1.5"/>
+          <!-- Shared internal features -->
+          <rect x="225" y="110" rx="8" width="250" height="45" fill="rgba(255,215,64,0.1)" stroke="#ffd740" stroke-width="2"/>
+          <text x="350" y="130" fill="#ffd740" font-size="14" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">SAME internal features:</text>
+          <text x="350" y="148" fill="#ffd740" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">"smallness" + "opposites"</text>
+          <!-- Output -->
+          <text x="350" y="185" fill="#6b7394" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">Language-specific features only activate at output</text>
+        </svg>
+      </div>
+    </div>
+    <div class="anim-step">
+      <div class="key-insight">
+        <p>The model has a universal "language of thought" that transcends any specific language.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 37 — Hallucination Circuit
+     ============================================================ -->
+<section class="slide layout-split" id="slide-37">
+  <div class="slide-text">
+    <h2>How Hallucinations Happen</h2>
+    <div class="anim-step">
+      <p>Hallucinations aren't random — they're a <span class="text-pink">specific circuit malfunction</span>.</p>
+    </div>
+    <div class="anim-step">
+      <p>Default: Claude <span class="text-green">refuses</span> to answer (safety training).</p>
+    </div>
+    <div class="anim-step">
+      <p>A "familiarity circuit" checks recognition. If it fires → <span class="text-orange">suppresses refusal</span> → answers.</p>
+    </div>
+    <div class="anim-step">
+      <div class="highlight-box pink">
+        <p style="margin:0;">The bug: familiarity fires for <strong>unknown</strong> entities → refusal suppressed + no knowledge = hallucination.</p>
+      </div>
+    </div>
+    <div class="anim-step">
+      <p class="citation">Anthropic, Circuit Tracing, 2025</p>
+    </div>
+  </div>
+  <div class="slide-visual">
+    <div class="diagram-container">
+      <svg viewBox="0 0 380 300" xmlns="http://www.w3.org/2000/svg">
+        <!-- Normal path -->
+        <g class="anim-step">
+          <text x="190" y="18" fill="#6b7394" font-size="11" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">CORRECT BEHAVIOR</text>
+          <rect x="100" y="25" rx="6" width="180" height="30" fill="var(--bg-card)" stroke="#fff" stroke-width="1"/>
+          <text x="190" y="45" fill="#fff" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">"Who is Michael Jordan?"</text>
+          <line x1="190" y1="58" x2="190" y2="78" stroke="#6b7394" stroke-width="1.5" marker-end="url(#arrowhead-white)"/>
+          <rect x="110" y="80" rx="6" width="160" height="28" fill="rgba(0,230,118,0.1)" stroke="#00e676" stroke-width="1"/>
+          <text x="190" y="99" fill="#00e676" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">Familiarity: YES ✓</text>
+          <line x1="190" y1="110" x2="190" y2="125" stroke="#00e676" stroke-width="1.5" marker-end="url(#arrowhead-green)"/>
+          <text x="190" y="140" fill="#00e676" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">→ Answers correctly</text>
+        </g>
+        <!-- Hallucination path -->
+        <g class="anim-step">
+          <text x="190" y="172" fill="#ff4081" font-size="11" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">HALLUCINATION BUG</text>
+          <rect x="80" y="180" rx="6" width="220" height="30" fill="var(--bg-card)" stroke="#ff4081" stroke-width="1"/>
+          <text x="190" y="200" fill="#fff" font-size="12" text-anchor="middle" font-family="Inter, sans-serif">"Who is Michael Batkin?"</text>
+          <line x1="190" y1="212" x2="190" y2="232" stroke="#6b7394" stroke-width="1.5" marker-end="url(#arrowhead-white)"/>
+          <rect x="100" y="235" rx="6" width="180" height="28" fill="rgba(255,64,129,0.1)" stroke="#ff4081" stroke-width="1"/>
+          <text x="190" y="254" fill="#ff4081" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">Familiarity: MISFIRE ✗</text>
+          <line x1="190" y1="265" x2="190" y2="280" stroke="#ff4081" stroke-width="1.5"/>
+          <text x="190" y="295" fill="#ff4081" font-size="12" text-anchor="middle" font-weight="600" font-family="Inter, sans-serif">→ Confabulates a biography</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 38 — Transition: Limitations
+     ============================================================ -->
+<section class="slide section-transition layout-center" id="slide-38">
+  <div class="slide-content">
+    <p class="label text-cyan">Act V</p>
+    <h2>Limitations & The Future</h2>
+    <div class="anim-step">
+      <p>These models are powerful — but <span class="text-pink">imperfect</span> in surprising ways.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 39 — Jagged Intelligence
+     ============================================================ -->
+<section class="slide layout-center" id="slide-39">
+  <div class="slide-content">
+    <h2>Jagged Intelligence</h2>
+    <div class="anim-step">
+      <blockquote>
+        <p>"The strange, unintuitive fact that state-of-the-art LLMs can both perform extremely impressive tasks while simultaneously struggling with some very dumb problems."</p>
+        <span class="attribution">— Andrej Karpathy</span>
+      </blockquote>
+    </div>
+    <div class="anim-step">
+      <div class="diagram-container large">
+        <svg viewBox="0 0 800 180" xmlns="http://www.w3.org/2000/svg">
+          <!-- Jagged capability line -->
+          <line x1="50" y1="160" x2="750" y2="160" stroke="#334" stroke-width="1"/>
+          <text x="50" y="175" fill="#6b7394" font-size="10" font-family="Inter, sans-serif">Tasks →</text>
+          <line x1="50" y1="160" x2="50" y2="20" stroke="#334" stroke-width="1"/>
+          <text x="30" y="90" fill="#6b7394" font-size="10" text-anchor="middle" font-family="Inter, sans-serif" transform="rotate(-90,30,90)">Capability</text>
+          <!-- Peaks and valleys -->
+          <path d="M 80,50 L 160,40 L 210,145 L 280,35 L 340,140 L 400,30 L 450,130 L 530,45 L 580,150 L 650,55 L 720,60" fill="none" stroke="#00d4ff" stroke-width="3"/>
+          <!-- Labels for peaks -->
+          <text x="160" y="30" fill="#00e676" font-size="9" text-anchor="middle" font-family="Inter, sans-serif">Legal briefs</text>
+          <text x="280" y="25" fill="#00e676" font-size="9" text-anchor="middle" font-family="Inter, sans-serif">Complex math</text>
+          <text x="400" y="20" fill="#00e676" font-size="9" text-anchor="middle" font-family="Inter, sans-serif">Code generation</text>
+          <text x="530" y="35" fill="#00e676" font-size="9" text-anchor="middle" font-family="Inter, sans-serif">Translation</text>
+          <!-- Labels for valleys -->
+          <text x="210" y="155" fill="#ff4081" font-size="9" text-anchor="middle" font-family="Inter, sans-serif">Count r's in "strawberry"</text>
+          <text x="340" y="152" fill="#ff4081" font-size="9" text-anchor="middle" font-family="Inter, sans-serif">9.11 vs 9.9</text>
+          <text x="450" y="142" fill="#ff4081" font-size="9" text-anchor="middle" font-family="Inter, sans-serif">Tic-tac-toe</text>
+          <text x="580" y="155" fill="#ff4081" font-size="9" text-anchor="middle" font-family="Inter, sans-serif">Spatial reasoning</text>
+        </svg>
+      </div>
+    </div>
+    <div class="anim-step">
+      <div class="key-insight">
+        <p>LLMs take shortcuts instead of truly generalizing. When the shortcut works → brilliant. When it doesn't → foolish.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 40 — Open Problems
+     ============================================================ -->
+<section class="slide layout-center" id="slide-40">
+  <div class="slide-content">
+    <h2>Open Problems the Community Is Tackling</h2>
+    <div class="anim-step">
+      <div class="card-row">
+        <div class="card">
+          <h3 style="font-size:clamp(18px,2vw,28px);" class="text-cyan">Continual Learning</h3>
+          <p style="font-size:clamp(14px,1.5vw,22px);">Current LLMs are frozen after training. How do we let them keep learning without forgetting? Catastrophic forgetting remains unsolved.</p>
+        </div>
+        <div class="card">
+          <h3 style="font-size:clamp(18px,2vw,28px);" class="text-orange">World Models</h3>
+          <p style="font-size:clamp(14px,1.5vw,22px);">Do LLMs build internal models of reality, or just learn surface statistics? Can we train models that truly understand causality and physics?</p>
+        </div>
+      </div>
+    </div>
+    <div class="anim-step">
+      <div class="card-row" style="margin-top:clamp(8px,1.2vw,16px);">
+        <div class="card">
+          <h3 style="font-size:clamp(18px,2vw,28px);" class="text-green">Energy & Sample Efficiency</h3>
+          <p style="font-size:clamp(14px,1.5vw,22px);">GPT-4 training cost ~$100M+ in compute. Human brains run on 20 watts. Can we close this gap? Data efficiency is equally critical — children learn language from far less data.</p>
+        </div>
+      </div>
+    </div>
+    <div class="anim-step">
+      <div class="key-insight">
+        <p>These aren't just engineering problems — they're fundamental questions about the nature of learning and intelligence.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 41 — Historical Timeline
+     ============================================================ -->
+<section class="slide layout-center" id="slide-41">
+  <div class="slide-content">
+    <h2>A Timeline of Discovery</h2>
+    <div style="overflow:hidden; max-height: 70vh;">
+      <div class="timeline">
+        <div class="anim-step">
+          <div class="timeline-item"><span class="year">2013</span> <span class="event">Word2Vec — words become vectors (Mikolov, Google)</span></div>
+        </div>
+        <div class="anim-step">
+          <div class="timeline-item"><span class="year">2017</span> <span class="event">"Attention Is All You Need" — the Transformer (Vaswani, Google)</span></div>
+        </div>
+        <div class="anim-step">
+          <div class="timeline-item"><span class="year">2018–20</span> <span class="event">GPT-1, 2, 3 — scaling reveals emergent abilities</span></div>
+        </div>
+        <div class="anim-step">
+          <div class="timeline-item"><span class="year">2022</span> <span class="event">ChatGPT — AI goes mainstream · RLHF revolution</span></div>
+        </div>
+        <div class="anim-step">
+          <div class="timeline-item"><span class="year">2024</span> <span class="event">Golden Gate Claude — first look inside a production LLM</span></div>
+        </div>
+        <div class="anim-step">
+          <div class="timeline-item"><span class="year">2024</span> <span class="event">Geoffrey Hinton wins Nobel Prize in Physics</span></div>
+        </div>
+        <div class="anim-step">
+          <div class="timeline-item"><span class="year">2025</span> <span class="event">DeepSeek-R1 — pure RL creates reasoning · Biology of LLMs</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 42 — The Future
+     ============================================================ -->
+<section class="slide layout-center" id="slide-42">
+  <div class="slide-content">
+    <h2>The Future: An Age of Wonder</h2>
+    <div class="anim-step">
+      <blockquote>
+        <p>"The 2010s were the age of scaling, now we're back in the age of wonder and discovery once again."</p>
+        <span class="attribution">— Ilya Sutskever</span>
+      </blockquote>
+    </div>
+    <div class="anim-step">
+      <div class="two-col" style="margin-top:20px;">
+        <div class="highlight-box orange">
+          <p class="small-text" style="margin:0;"><strong>Old paradigm:</strong><br>Bigger model + More data → Better</p>
+        </div>
+        <div class="highlight-box green">
+          <p class="small-text" style="margin:0;"><strong>New paradigm:</strong><br>Same model + More thinking + Better RL → Better reasoning</p>
+        </div>
+      </div>
+    </div>
+    <div class="anim-step">
+      <blockquote style="margin-top:16px;">
+        <p>"If the benefits of the increased productivity can be shared equally, it will be a wonderful advance for all of humanity."</p>
+        <span class="attribution">— Geoffrey Hinton, Nobel Prize Speech, 2024</span>
+      </blockquote>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 43 — Key Takeaways
+     ============================================================ -->
+<section class="slide layout-center" id="slide-43">
+  <div class="slide-content">
+    <h2>Key Takeaways</h2>
+    <ul>
+      <div class="anim-step">
+        <li style="margin-bottom:clamp(10px,1.5vw,20px);"><strong class="text-cyan">Meaning is geometry</strong> — words, concepts, knowledge are vectors in high-dimensional space</li>
+      </div>
+      <div class="anim-step">
+        <li class="bullet-orange" style="margin-bottom:clamp(10px,1.5vw,20px);"><strong class="text-orange">Attention is the key innovation</strong> — it lets words "look at" each other to understand context</li>
+      </div>
+      <div class="anim-step">
+        <li class="bullet-green" style="margin-bottom:clamp(10px,1.5vw,20px);"><strong class="text-green">LLMs are grown, not engineered</strong> — intelligence emerges from optimization on data</li>
+      </div>
+      <div class="anim-step">
+        <li class="bullet-purple" style="margin-bottom:clamp(10px,1.5vw,20px);"><strong class="text-purple">We can now look inside</strong> — interpretability reveals how models think and plan</li>
+      </div>
+      <div class="anim-step">
+        <li class="bullet-yellow" style="margin-bottom:clamp(10px,1.5vw,20px);"><strong class="text-yellow">Intelligence is jagged</strong> — powerful but imperfect, brilliant in some ways and brittle in others</li>
+      </div>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 44 — References
+     ============================================================ -->
+<section class="slide layout-center" id="slide-44">
+  <div class="slide-content" style="padding-top:0.5rem; text-align:left; max-width:1400px;">
+    <h2 style="margin-bottom:0.4rem; text-align:center;">References & Further Reading</h2>
+    <div class="two-col" style="font-size:clamp(9px,0.9vw,13px); color:var(--text-dim); line-height:1.35; gap:4rem; align-items:start;">
+      <div>
+        <p style="color:var(--accent-cyan); font-weight:600; font-size:clamp(11px,1.1vw,16px); margin:0 0 0.15rem;">Papers</p>
+        <p style="margin:0.05rem 0;">Mikolov et al., "Word2Vec" (2013)</p>
+        <p style="margin:0.05rem 0;">Vaswani et al., "Attention Is All You Need" (2017)</p>
+        <p style="margin:0.05rem 0;">Brown et al., "GPT-3" (2020)</p>
+        <p style="margin:0.05rem 0;">Ouyang et al., "InstructGPT" (2022)</p>
+        <p style="margin:0.05rem 0;">Elhage et al., "Toy Models of Superposition" (2022)</p>
+        <p style="margin:0.05rem 0;">Templeton et al., "Scaling Monosemanticity" (2024)</p>
+        <p style="margin:0.05rem 0;">DeepSeek, "DeepSeek-R1" (2025)</p>
+        <p style="margin:0.05rem 0;">Anthropic, "Biology of an LLM" (2025)</p>
+        <p style="margin:0.05rem 0;">Li et al., "Loss Landscape of NNs" (2018)</p>
+      </div>
+      <div>
+        <p style="color:var(--accent-orange); font-weight:600; font-size:clamp(11px,1.1vw,16px); margin:0 0 0.15rem;">Visual Guides & Blogs</p>
+        <p style="margin:0.05rem 0;">Jay Alammar — "The Illustrated Transformer"</p>
+        <p style="margin:0.05rem 0;">3Blue1Brown — "But What Is a GPT?"</p>
+        <p style="margin:0.05rem 0;">Chris Olah — colah.github.io</p>
+        <p style="margin:0.05rem 0;">Andrej Karpathy — "Software 2.0"</p>
+        <p style="margin:0.05rem 0;">Chip Huyen — "RLHF Explained"</p>
+        <p style="margin:0.05rem 0;">Ethan Mollick — "Jagged Frontier"</p>
+        <p style="color:var(--accent-green); font-weight:600; font-size:clamp(11px,1.1vw,16px); margin:0.3rem 0 0.15rem;">People Quoted</p>
+        <p style="margin:0.05rem 0;">Ilya Sutskever · Andrej Karpathy · Chris Olah</p>
+        <p style="margin:0.05rem 0;">Geoffrey Hinton · Jay Alammar · DeepSeek team</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div><!-- end .presentation -->
+
+<!-- Progress bar -->
+<div class="progress-bar" style="width:0%"></div>
+
+<!-- Slide counter -->
+<div class="slide-counter">1 / 44</div>
+
+<!-- Step indicator dots -->
+<div class="step-indicator"></div>
+
+<!-- Nav hint -->
+<div class="nav-hint">→ Right arrow to advance · ← Left arrow to go back · F for fullscreen</div>
+
+<!-- Scripts -->
+<script src="js/presentation.js"></script>
+
+</body>
+</html>
